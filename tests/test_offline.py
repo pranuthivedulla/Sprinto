@@ -83,6 +83,25 @@ def fields_for(**over):
 VERTICAL_OK = {"value": "fintech", "quote": "Acme Pay helps banks move money",
                "source": "https://acme.io/", "certain": True, "verified": True}
 
+# --- html reader: menu items must not glue into fake sentences ----------------
+print("html reader")
+NAV_HTML = (
+    "<body><p>We are <a href='/soc'>SOC 2</a> certified today.</p>"
+    "<a class='card' href='/mf'><span><b>Manufacturing</b>"
+    "<em>Where the kiosk is built, in Chakan</em></span></a>"
+    "<a class='card' href='/careers'><span><b>Careers</b>"
+    "<em>Open roles across engineering</em></span></a></body>"
+)
+_text, _links = scrape.html_to_text(NAV_HTML)
+_lines = [l.strip() for l in _text.splitlines() if l.strip()]
+check("a menu card sits on its own line",
+      any(l == "Manufacturing Where the kiosk is built, in Chakan" for l in _lines))
+check("two menu cards do not glue together",
+      not any("Chakan" in l and "Careers" in l for l in _lines))
+check("a link inside a sentence stays in the sentence",
+      any("We are SOC 2 certified today." in l for l in _lines))
+check("links are still collected", len(_links) == 3)
+
 # --- redirect guard ---------------------------------------------------------
 print("redirect guard")
 check("a real security page counts as the trust page",

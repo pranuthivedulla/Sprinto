@@ -72,6 +72,8 @@ class _Extractor(HTMLParser):
         self._skip_depth = 0
         self._href = None
         self._anchor = []
+        self._anchor_start = 0
+        self._anchor_children = 0
 
     def handle_starttag(self, tag, attrs):
         if tag in self.SKIP:
@@ -79,8 +81,12 @@ class _Extractor(HTMLParser):
         elif tag == "a":
             self._href = dict(attrs).get("href")
             self._anchor = []
+            self._anchor_start = len(self.parts)
+            self._anchor_children = 0
         elif tag in ("br", "p", "div", "li", "tr", "h1", "h2", "h3", "h4"):
             self.parts.append("\n")
+        if self._href is not None and tag not in self.SKIP and tag != "a":
+            self._anchor_children += 1
 
     def handle_endtag(self, tag):
         if tag in self.SKIP and self._skip_depth:
@@ -88,7 +94,14 @@ class _Extractor(HTMLParser):
         elif tag == "a":
             if self._href:
                 self.links.append((self._href, " ".join(self._anchor).strip()))
+            # A link that wraps its own markup is a card or a menu item, not a word in a
+            # sentence. Fence it off so its text cannot glue onto the text either side
+            # and be quoted back as if it were one sentence.
+            if self._anchor_children:
+                self.parts.insert(self._anchor_start, "\n")
+                self.parts.append("\n")
             self._href, self._anchor = None, []
+            self._anchor_children = 0
 
     def handle_data(self, data):
         if self._skip_depth:
