@@ -1,0 +1,14 @@
+.env
+*.db
+*.sqlite3
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/
+.DS_Store
+
+# Course material, kept local: this repo is public and the case paper is MESA's.
+# Remove these two lines and `git add -f` them if you want them up there.
+MESA_Case*.pdf
+WhatsApp Image*.jpeg

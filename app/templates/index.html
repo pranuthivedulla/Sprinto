@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprinto cold outreach</title>
+<style>
+  :root { --line:#d7dce3; --ink:#15202b; --muted:#5b6672; --bg:#f6f7f9;
+          --high:#b23b2e; --med:#9a6b12; --low:#5b6672; --ok:#1d6b45; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px 16px 64px; background:var(--bg); color:var(--ink);
+         font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  h2 { font-size:17px; margin:32px 0 10px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .box { background:#fff; border:1px solid var(--line); border-radius:8px;
+         padding:16px; margin-bottom:16px; }
+  label { display:block; font-weight:600; font-size:13px; margin:10px 0 4px; }
+  textarea, input[type=text], input[type=password] { width:100%; padding:8px;
+    border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; }
+  textarea { resize:vertical; }
+  button { padding:8px 14px; border:1px solid var(--line); border-radius:6px;
+           background:#fff; font:inherit; cursor:pointer; }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button.danger { color:var(--high); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .note { padding:10px 12px; border-radius:6px; margin-bottom:14px; }
+  .note.ok { background:#e8f4ee; border:1px solid #bcdcca; }
+  .note.bad { background:#fcebe9; border:1px solid #f0c4bd; }
+  .note.warn { background:#fdf4e3; border:1px solid #ecd9ae; }
+  .tier { font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-size:12px; }
+  .tier.High { color:var(--high); } .tier.Medium { color:var(--med); }
+  .tier.Low { color:var(--low); }
+  .flags { margin:6px 0 0; padding:0; list-style:none; font-size:13px; }
+  .flags li { display:inline-block; background:#fdf4e3; border:1px solid #ecd9ae;
+              border-radius:999px; padding:1px 9px; margin:3px 4px 0 0; }
+  .flags li.check { background:#fcebe9; border-color:#f0c4bd; }
+  details { margin-top:10px; } summary { cursor:pointer; font-weight:600; font-size:13px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  td, th { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left;
+           vertical-align:top; }
+  .muted { color:var(--muted); font-size:13px; }
+  .quote { font-style:italic; color:var(--muted); }
+  a { color:#2a5d9f; }
+  code { background:#eef0f3; padding:1px 4px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Sprinto cold outreach</h1>
+<p class="sub">Paste domains, run the pipeline, read each draft, approve one at a time.
+Nothing is ever sent without an approval, and every approved email goes to
+<code>TO_EMAIL</code> and nowhere else.</p>
+
+{% if message %}<div class="note ok">{{ message }}</div>{% endif %}
+{% if error %}<div class="note bad">{{ error }}</div>{% endif %}
+{% if missing_keys %}
+<div class="note warn">Not set in <code>.env</code>: {{ missing_keys|join(', ') }}.
+Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
+{% endif %}
+
+<div class="box">
+  <form method="post" action="/run">
+    <label for="domains">Domains (one per line, or comma separated)</label>
+    <textarea id="domains" name="domains" rows="5"
+      placeholder="https://www.example.com/pricing&#10;another.io"></textarea>
+    <label for="passcode">Passcode</label>
+    <input type="password" id="passcode" name="passcode" autocomplete="off">
+    <div class="row" style="margin-top:12px">
+      <button class="primary" type="submit">Run</button>
+      <span class="muted">Sent today: {{ cap.used }} of {{ cap.cap }}
+        ({{ cap.left }} left under the daily cap)</span>
+    </div>
+  </form>
+  <div id="job" class="muted" style="margin-top:10px"></div>
+</div>
+
+<h2>Review ({{ review|length }})</h2>
+{% if not review %}
+<p class="muted">Nothing queued yet. Run a list of domains above.</p>
+{% endif %}
+
+{% for c in review %}
+<div class="box">
+  <div class="row" style="justify-content:space-between">
+    <div>
+      <span class="tier {{ c.tier }}">{{ c.tier or c.status }}</span>
+      <strong style="margin-left:8px">{{ c.company_name }}</strong>
+      <span class="muted">{{ c.domain }}</span>
+    </div>
+    <span class="muted">
+      {% if c.status == 'sent' %}sent {{ c.sent_at }}
+      {% elif c.status == 'rejected' %}rejected
+      {% else %}awaiting your decision{% endif %}
+    </span>
+  </div>
+
+  <ul class="flags">
+    {% for f in c.flags %}<li>{{ f }}</li>{% endfor %}
+    {% for f in c.check_flags %}<li class="check">check: {{ f }}</li>{% endfor %}
+    {% if not c.flags and not c.check_flags %}<li style="background:#e8f4ee;border-color:#bcdcca">no flags</li>{% endif %}
+  </ul>
+
+  {% if c.status in ('queued', 'rejected') %}
+  <form method="post" action="/approve">
+    <input type="hidden" name="company_id" value="{{ c.id }}">
+    <label>Subject</label>
+    <input type="text" name="subject" value="{{ c.subject }}">
+    <label>Body ({{ c.body.split()|length }} words)</label>
+    <textarea name="body" rows="9">{{ c.body }}</textarea>
+    <label>Passcode</label>
+    <input type="password" name="passcode" autocomplete="off">
+    <div class="row" style="margin-top:10px">
+      <button class="primary" type="submit">Approve and send</button>
+      <button type="submit" formaction="/save">Save edit</button>
+    </div>
+  </form>
+  <form method="post" action="/reject" class="row" style="margin-top:8px">
+    <input type="hidden" name="company_id" value="{{ c.id }}">
+    <input type="text" name="reason" placeholder="Reject reason (logged)"
+           style="flex:1 1 240px">
+    <input type="password" name="passcode" placeholder="Passcode" autocomplete="off"
+           style="flex:0 1 140px">
+    <button class="danger" type="submit">Reject</button>
+  </form>
+  {% else %}
+  <p><strong>{{ c.subject }}</strong></p>
+  <p style="white-space:pre-wrap">{{ c.body }}</p>
+  {% endif %}
+
+  {% if c.reject_reason %}<p class="muted">Reject reason: {{ c.reject_reason }}</p>{% endif %}
+
+  <details open>
+    <summary>Why this company qualified</summary>
+    <p class="muted">{{ c.audit_verdict }}</p>
+    <table>
+      <tr><th>Signal</th><th>Evidence</th><th>Source</th></tr>
+      {% for s in c.signals %}
+      <tr>
+        <td>{{ s.label }}{% if s.never_in_email %} <em>(never in the email)</em>{% endif %}</td>
+        <td class="quote">{{ s.quote }}{% if s.date %} ({{ s.date }}){% endif %}</td>
+        <td>{% if s.source %}<a href="{{ s.source }}" rel="noreferrer">source</a>{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+      {% if not c.signals %}<tr><td colspan="3" class="muted">No intent signal found. Passes the filters only.</td></tr>{% endif %}
+    </table>
+    <p class="muted" style="margin-top:8px">Hook used in the email:
+      <span class="quote">{{ c.hook.quote or c.hook.text }}</span>
+      {% if c.hook.source %} - <a href="{{ c.hook.source }}" rel="noreferrer">source</a>{% endif %}
+    </p>
+  </details>
+
+  <details>
+    <summary>Why this person</summary>
+    <p>{{ c.poc_name }} - {{ c.poc_title }} - {{ c.poc_email }}
+      {% if c.poc_confidence %}<span class="muted">(Hunter confidence {{ c.poc_confidence }})</span>{% endif %}</p>
+    <p class="muted">{{ c.poc_reason }}</p>
+    {% if c.pains %}
+    <p class="muted">Pain points written for this role:</p>
+    <ul class="muted">{% for p in c.pains %}<li>{{ p }}</li>{% endfor %}</ul>
+    {% endif %}
+  </details>
+
+  <details>
+    <summary>Stored fields and quotes</summary>
+    <table>
+      <tr><th>Field</th><th>Value</th><th>Quote</th><th>Source</th><th>Quote found in page text</th></tr>
+      {% for key, f in c.fields.items() %}
+        {% if f is mapping and f.get('value') is defined %}
+        <tr>
+          <td>{{ key }}</td><td>{{ f.value }}</td>
+          <td class="quote">{{ f.quote }}</td>
+          <td>{% if f.source %}<a href="{{ f.source }}" rel="noreferrer">link</a>{% else %}-{% endif %}</td>
+          <td>{{ 'yes' if f.verified else 'no' }}</td>
+        </tr>
+        {% endif %}
+      {% endfor %}
+      {% for cert in c.fields.get('certifications', []) %}
+        <tr>
+          <td>certification</td><td>{{ cert.framework }} - {{ cert.status }}</td>
+          <td class="quote">{{ cert.quote }}</td>
+          <td>{% if cert.source %}<a href="{{ cert.source }}" rel="noreferrer">link</a>{% else %}-{% endif %}</td>
+          <td>{{ 'yes' if cert.verified else 'no' }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    {% if c.fields.get('_pages') %}
+    <p class="muted" style="margin-top:8px">Pages read:
+      {% for kind, p in c.fields['_pages'].items() %}{{ kind }} ({{ p.status }}){% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+    {% endif %}
+    {% if c.fields.get('_loop') %}
+    <p class="muted">Agent loop: {{ c.fields['_loop']|join(' | ') }}</p>
+    {% endif %}
+  </details>
+</div>
+{% endfor %}
+
+<h2>Dropped ({{ drops|length }})</h2>
+<div class="box">
+<table>
+  <tr><th>Domain</th><th>Rule</th><th>Quote that triggered it</th><th>Source</th></tr>
+  {% for d in drops %}
+  <tr>
+    <td>{{ d.domain }}</td><td>{{ d.drop_rule }}</td>
+    <td class="quote">{{ d.drop_quote }}</td>
+    <td>{% if d.drop_source and d.drop_source.startswith('http') %}<a href="{{ d.drop_source }}" rel="noreferrer">link</a>{% else %}{{ d.drop_source }}{% endif %}</td>
+  </tr>
+  {% endfor %}
+  {% if not drops %}<tr><td colspan="4" class="muted">Nothing dropped in this run.</td></tr>{% endif %}
+</table>
+</div>
+
+<h2>Sent</h2>
+<div class="box">
+<table>
+  <tr><th>When</th><th>Domain</th><th>Subject</th><th>To</th></tr>
+  {% for s in sent %}
+  <tr><td>{{ s.sent_at }}</td><td>{{ s.domain }}</td><td>{{ s.subject }}</td><td>{{ s.to_address }}</td></tr>
+  {% endfor %}
+  {% if not sent %}<tr><td colspan="4" class="muted">Nothing sent yet.</td></tr>{% endif %}
+</table>
+</div>
+
+</div>
+<script>
+let wasRunning = false;
+async function poll() {
+  try {
+    const job = await (await fetch('/job')).json();
+    const el = document.getElementById('job');
+    if (job.state === 'running') {
+      wasRunning = true;
+      el.textContent = `Running: ${job.done} of ${job.total} done. ${job.message}`;
+    } else if (wasRunning && job.state === 'done') {
+      location.href = '/?message=' + encodeURIComponent('Run finished.');
+      return;
+    } else if (job.state === 'done') {
+      el.textContent = 'Last run finished.';
+    }
+  } catch (e) { /* page works without this */ }
+  setTimeout(poll, 2500);
+}
+poll();
+</script>
+</body>
+</html>
