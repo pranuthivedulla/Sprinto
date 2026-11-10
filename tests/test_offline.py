@@ -343,22 +343,44 @@ class FakeConn:
     def execute(self, sql, params=None): self.sql.append(sql); return self
 
 
-def _as_postgres(fn):
-    os.environ["DATABASE_URL"] = "postgresql://user:pw@host/db"
+def _with_db_url(value, fn):
+    """Run fn with DATABASE_URL forced on or off, then put back what was there.
+
+    The suite must not disturb a real DATABASE_URL, because the whole point of
+    setting one is to run these same checks against the real database.
+    """
+    before = os.environ.get("DATABASE_URL")
+    if value:
+        os.environ["DATABASE_URL"] = value
+    else:
+        os.environ.pop("DATABASE_URL", None)
     config._ENV_LOADED = True
     try:
         return fn()
     finally:
-        os.environ.pop("DATABASE_URL", None)
+        if before is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = before
 
 
-check("SQLite is the default with no DATABASE_URL", not db.is_postgres())
+def _as_postgres(fn):
+    return _with_db_url("postgresql://user:pw@host/db", fn)
+
+
+def _as_sqlite(fn):
+    return _with_db_url("", fn)
+
+
+check("SQLite is the default with no DATABASE_URL",
+      _as_sqlite(lambda: not db.is_postgres()))
 check("DATABASE_URL switches the dialect", _as_postgres(db.is_postgres))
-check("placeholders stay ? on SQLite", db._q("WHERE a=? AND b=?") == "WHERE a=? AND b=?")
+check("placeholders stay ? on SQLite",
+      _as_sqlite(lambda: db._q("WHERE a=? AND b=?")) == "WHERE a=? AND b=?")
 check("placeholders become %s on Postgres",
       _as_postgres(lambda: db._q("WHERE a=? AND b=?")) == "WHERE a=%s AND b=%s")
 check("SQLite schema uses AUTOINCREMENT",
-      any("AUTOINCREMENT" in s for s in db.schema_statements()))
+      _as_sqlite(lambda: any("AUTOINCREMENT" in s for s in db.schema_statements())))
 check("Postgres schema uses SERIAL instead",
       _as_postgres(lambda: all("AUTOINCREMENT" not in s for s in db.schema_statements())
                    and any("SERIAL PRIMARY KEY" in s for s in db.schema_statements())))
@@ -374,15 +396,16 @@ def _columns(statements):
 
 
 check("both engines declare exactly the same company columns",
-      _columns(db.schema_statements()) == _as_postgres(
-          lambda: _columns(db.schema_statements())))
+      _as_sqlite(lambda: _columns(db.schema_statements()))
+      == _as_postgres(lambda: _columns(db.schema_statements())))
 check("every table in the build prompt is created",
       {"runs", "companies", "hunter_cache", "news_cache", "send_log"}
       <= {s.split("IF NOT EXISTS")[1].split("(")[0].strip()
           for s in db.schema_statements()})
 
 _c = FakeConn()
-db._upsert(_c, "hunter_cache", ["domain"], ["response_json", "fetched_at"], ("a", "b", "c"))
+_as_sqlite(lambda: db._upsert(_c, "hunter_cache", ["domain"],
+                              ["response_json", "fetched_at"], ("a", "b", "c")))
 check("SQLite caches with INSERT OR REPLACE", "INSERT OR REPLACE" in _c.sql[0])
 _c = FakeConn()
 _as_postgres(lambda: db._upsert(_c, "hunter_cache", ["domain"],
@@ -508,6 +531,34 @@ check(f"the {config.MAX_DOMAINS_PER_RUN + 1}th domain in a run is refused",
       _over.status_code == 400)
 check("and the run still holds exactly the limit",
       db.count_companies(_rid) == config.MAX_DOMAINS_PER_RUN)
+
+
+# --- a misconfigured deployment must say so, not crash -----------------------
+print("deployment guard")
+
+
+def _as_vercel(fn):
+    os.environ["VERCEL"] = "1"
+    config._ENV_LOADED = True
+    try:
+        return fn()
+    finally:
+        os.environ.pop("VERCEL", None)
+
+
+_saved_pass = os.environ.get("REVIEW_PASSCODE", "")
+os.environ["REVIEW_PASSCODE"] = ""
+_r = _as_vercel(lambda: TestClient(main.app).get("/", follow_redirects=False))
+check("production without a passcode refuses to serve", _r.status_code == 503)
+check("and the reason is readable, not a stack trace",
+      "REVIEW_PASSCODE" in _r.text and "environment variables" in _r.text)
+check("even a refusal keeps search engines away",
+      _r.headers.get("X-Robots-Tag") == "noindex, nofollow")
+os.environ["REVIEW_PASSCODE"] = _saved_pass
+config._ENV_LOADED = True
+check("with both set, production serves normally",
+      _as_vercel(lambda: TestClient(main.app).get("/", follow_redirects=False)
+                 ).status_code == 303)
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")

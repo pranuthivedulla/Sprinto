@@ -134,10 +134,25 @@ def connect():
     return conn
 
 
+_SCHEMA_READY = False
+
+
 def init():
     with connect() as conn:
         for statement in schema_statements():
             conn.execute(statement)
+
+
+def ensure_schema():
+    """Create the tables once per process, on first use rather than at startup.
+
+    A serverless cold start that cannot reach the database must fail as a readable
+    error on the request, not as a dead function with no explanation.
+    """
+    global _SCHEMA_READY
+    if not _SCHEMA_READY:
+        init()
+        _SCHEMA_READY = True
 
 
 def log(event, detail="", company_id=None, run_id=None):

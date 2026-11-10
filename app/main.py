@@ -5,7 +5,7 @@ Run and Approve are admin actions: the passcode is checked here, on the server.
 import json
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from . import auth, clean, config, db, mailer, pipeline
@@ -18,25 +18,41 @@ REQUIRED_KEYS = ["GEMINI_API_KEY", "HUNTER_API_KEY", "REVIEW_PASSCODE", "TO_EMAI
 SEND_KEYS = ["GMAIL_SENDER_ADDRESS", "GMAIL_APP_PASSWORD", "TO_EMAIL"]
 
 
-if config.is_production():
-    for required in ("REVIEW_PASSCODE", "SESSION_SECRET"):
-        if not config.get(required):
-            raise RuntimeError(
-                f"{required} is not set. Refusing to serve the review page "
-                "unprotected in production."
-            )
+MISCONFIGURED_IN_PRODUCTION = ("REVIEW_PASSCODE", "SESSION_SECRET")
+
+
+def misconfigured():
+    """In production these two must be set, or the review page is open to anyone."""
+    if not config.is_production():
+        return []
+    return [n for n in MISCONFIGURED_IN_PRODUCTION if not config.get(n)]
 
 
 @app.middleware("http")
-async def _no_index(request: Request, call_next):
-    response = await call_next(request)
+async def _guard(request: Request, call_next):
+    missing = misconfigured()
+    if missing:
+        # Refuse to serve, and say why. A crash at import would be an opaque 500
+        # with the reason buried in a log nobody is looking at.
+        response = PlainTextResponse(
+            "This deployment is not configured. Set "
+            + " and ".join(missing)
+            + " in the project's environment variables, then redeploy.",
+            status_code=503,
+        )
+    else:
+        try:
+            db.ensure_schema()
+        except Exception as exc:
+            response = PlainTextResponse(
+                f"The database is not reachable: {type(exc).__name__}. "
+                "Check DATABASE_URL in the project's environment variables.",
+                status_code=503,
+            )
+        else:
+            response = await call_next(request)
     response.headers["X-Robots-Tag"] = "noindex, nofollow"
     return response
-
-
-@app.on_event("startup")
-def _startup():
-    db.init()
 
 
 def _loads(raw, default):
