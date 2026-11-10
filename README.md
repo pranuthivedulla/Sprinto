@@ -147,9 +147,10 @@ Never in the repository: this repository is public.
 | `SESSION_SECRET` | any long random string; signs the review cookie |
 | `DATABASE_URL` | Neon's **pooled** connection string |
 
-`maxDuration` in `vercel.json` is 300. Vercel's own documentation and third-party
-sources disagree about the Hobby ceiling, so if the deployment is rejected for that
-value, lower it to what your plan's dashboard states.
+`maxDuration` in `vercel.json` is 300, and a Hobby deployment accepted it. One
+domain is given 240 seconds of that (`DOMAIN_TIME_BUDGET` in `app/config.py`),
+leaving a minute of margin. The first deployed run proved 55 seconds was not
+enough: the scrape used all of it and the AI call had nothing left.
 
 **4. Deploy a preview, not production**, and run these five checks on the preview URL:
 

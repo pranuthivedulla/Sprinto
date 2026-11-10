@@ -65,7 +65,10 @@ EMAIL_WORD_LIMIT = 130  # "about 120 words or fewer" with a little slack before 
 GEMINI_DEFAULT_MODEL = "gemini-3.8-flash"
 MAX_DOMAINS_PER_RUN = 15   # one run of the chip input; not the daily send cap
 # One serverless invocation handles one domain, so the work has to fit inside it.
-DOMAIN_TIME_BUDGET = 55    # seconds of wall clock for a single domain
+# vercel.json allows 300s; this leaves a minute of margin. 55s was the original
+# target and it was wrong: on Vercel the scrape alone used all of it and the AI
+# call then had nothing left, so a real company came back as "retry".
+DOMAIN_TIME_BUDGET = 240   # seconds of wall clock for a single domain
 DEMO_DOMAINS_FILE = "demo_domains.txt"
 SESSION_MAX_AGE = 12 * 60 * 60   # how long one passcode entry lasts
 LOGIN_MAX_FAILURES = 5           # per window, per IP
