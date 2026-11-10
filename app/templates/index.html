@@ -5,54 +5,131 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sprinto cold outreach</title>
 <style>
-  :root { --line:#d7dce3; --ink:#15202b; --muted:#5b6672; --bg:#f6f7f9;
-          --high:#b23b2e; --med:#9a6b12; --low:#5b6672; --ok:#1d6b45; }
+  :root {
+    --sky-wash:#f3fafe; --sky-soft:#e3f3fd; --sky-edge:#bfe3f8;
+    --sky:#0a93d6; --sky-deep:#06739f; --sky-ink:#05516f;
+    --pink:#e8368f; --pink-wash:#fdeef6; --pink-edge:#f7c2dc;
+    --ink:#102432; --muted:#5a6b7a; --line:#dbe9f2;
+    --ok:#0d7a5f; --ok-wash:#e6f6f1; --ok-edge:#b6e2d4;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; padding:24px 16px 64px; background:var(--bg); color:var(--ink);
+  body { margin:0; padding:0 0 64px; color:var(--ink);
+         background:var(--sky-wash);
          font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-  .wrap { max-width:960px; margin:0 auto; }
-  h1 { font-size:22px; margin:0 0 4px; }
+  .wrap { max-width:960px; margin:0 auto; padding:0 16px; }
+
+  /* Header band: the sky blue, used once and large rather than everywhere */
+  .masthead { background:linear-gradient(180deg,#e9f5fd 0%,var(--sky-wash) 100%);
+              border-bottom:1px solid var(--sky-edge); padding:28px 0 22px;
+              margin-bottom:24px; }
+  .masthead h1 { display:flex; align-items:center; gap:10px; }
+  .masthead h1::before { content:""; width:6px; height:26px; border-radius:3px;
+                         background:linear-gradient(180deg,var(--sky) 60%,var(--pink) 60%); }
+  h1 { font-size:23px; margin:0 0 6px; letter-spacing:-.01em; }
   h2 { font-size:17px; margin:32px 0 10px; }
-  .sub { color:var(--muted); margin:0 0 20px; }
-  .box { background:#fff; border:1px solid var(--line); border-radius:8px;
-         padding:16px; margin-bottom:16px; }
+  .sub { color:var(--muted); margin:0; max-width:70ch; }
+
+  .box { background:#fff; border:1px solid var(--line); border-radius:12px;
+         padding:18px; margin-bottom:16px;
+         box-shadow:0 1px 2px rgba(16,36,50,.04), 0 6px 18px rgba(10,147,214,.05); }
+
   label { display:block; font-weight:600; font-size:13px; margin:10px 0 4px; }
-  textarea, input[type=text], input[type=password] { width:100%; padding:8px;
-    border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; }
+  textarea, input[type=text], input[type=password] { width:100%; padding:9px 10px;
+    border:1px solid var(--sky-edge); border-radius:8px; font:inherit; background:#fff;
+    color:var(--ink); }
+  textarea:focus, input:focus { outline:2px solid var(--sky); outline-offset:1px;
+    border-color:var(--sky); }
   textarea { resize:vertical; }
-  button { padding:8px 14px; border:1px solid var(--line); border-radius:6px;
-           background:#fff; font:inherit; cursor:pointer; }
-  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
-  button.danger { color:var(--high); }
+
+  button { padding:9px 15px; border:1px solid var(--sky-edge); border-radius:8px;
+           background:#fff; color:var(--sky-ink); font:inherit; font-weight:600;
+           cursor:pointer; }
+  button:hover { background:var(--sky-soft); }
+  button.primary { background:var(--sky); color:#fff; border-color:var(--sky); }
+  button.primary:hover { background:var(--sky-deep); border-color:var(--sky-deep); }
+  button.danger { color:var(--pink); border-color:var(--pink-edge); }
+  button.danger:hover { background:var(--pink-wash); }
+  button:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
+  button:disabled { cursor:not-allowed; opacity:.5; }
+  button.primary:disabled { background:#cfe3ef; border-color:#cfe3ef; color:#6b8697; }
+  button.primary:disabled:hover { background:#cfe3ef; }
+
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .note { padding:10px 12px; border-radius:6px; margin-bottom:14px; }
-  .note.ok { background:#e8f4ee; border:1px solid #bcdcca; }
-  .note.bad { background:#fcebe9; border:1px solid #f0c4bd; }
-  .note.warn { background:#fdf4e3; border:1px solid #ecd9ae; }
-  .tier { font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-size:12px; }
-  .tier.High { color:var(--high); } .tier.Medium { color:var(--med); }
-  .tier.Low { color:var(--low); }
-  .flags { margin:6px 0 0; padding:0; list-style:none; font-size:13px; }
-  .flags li { display:inline-block; background:#fdf4e3; border:1px solid #ecd9ae;
-              border-radius:999px; padding:1px 9px; margin:3px 4px 0 0; }
-  .flags li.check { background:#fcebe9; border-color:#f0c4bd; }
-  details { margin-top:10px; } summary { cursor:pointer; font-weight:600; font-size:13px; }
+  .note { padding:11px 13px; border-radius:8px; margin-bottom:14px; }
+  .note.ok { background:var(--ok-wash); border:1px solid var(--ok-edge); }
+  .note.bad { background:var(--pink-wash); border:1px solid var(--pink-edge); }
+  .note.warn { background:var(--sky-soft); border:1px solid var(--sky-edge); }
+
+  /* Pink marks the things that want your attention: the top leads, the problems */
+  .tier { font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:11px;
+          padding:2px 9px; border-radius:999px; }
+  .tier.High { color:#fff; background:var(--pink); }
+  .tier.Medium { color:var(--sky-ink); background:var(--sky-soft);
+                 border:1px solid var(--sky-edge); }
+  .tier.Low { color:var(--muted); background:#eef2f5; border:1px solid var(--line); }
+
+  .flags { margin:8px 0 0; padding:0; list-style:none; font-size:13px; }
+  .flags li { display:inline-block; background:var(--sky-soft);
+              border:1px solid var(--sky-edge); color:var(--sky-ink);
+              border-radius:999px; padding:2px 10px; margin:3px 4px 0 0; }
+  .flags li.check { background:var(--pink-wash); border-color:var(--pink-edge);
+                    color:#a01e63; }
+  .flags li.clear { background:var(--ok-wash); border-color:var(--ok-edge);
+                    color:var(--ok); }
+
+  details { margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+  summary { cursor:pointer; font-weight:600; font-size:13px; color:var(--sky-ink); }
   table { border-collapse:collapse; width:100%; font-size:13px; }
-  td, th { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left;
+  td, th { border-bottom:1px solid var(--line); padding:7px 8px; text-align:left;
            vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
   .muted { color:var(--muted); font-size:13px; }
   .quote { font-style:italic; color:var(--muted); }
-  a { color:#2a5d9f; }
-  code { background:#eef0f3; padding:1px 4px; border-radius:4px; font-size:12px; }
+  a { color:var(--sky-deep); }
+  code { background:var(--sky-soft); color:var(--sky-ink); padding:1px 5px;
+         border-radius:4px; font-size:12px; }
+
+  /* Chip input: you can see your list, and fix it, before anything is spent */
+  .chipbox { border:1px solid var(--sky-edge); border-radius:8px; background:#fff;
+             padding:6px; }
+  .chipbox:focus-within { outline:2px solid var(--sky); outline-offset:1px; }
+  .chips { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+  .chips:not(:empty) { margin-bottom:6px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:13px;
+          background:var(--sky-soft); border:1px solid var(--sky-edge);
+          color:var(--sky-ink); border-radius:999px; padding:3px 6px 3px 11px; }
+  .chip.bad { background:var(--pink-wash); border-color:var(--pink-edge); color:#a01e63; }
+  .chip em { font-style:normal; opacity:.8; }
+  .chip .x { border:0; background:transparent; color:inherit; font-weight:700;
+             cursor:pointer; padding:0 4px; border-radius:999px; line-height:1; }
+  .chip .x:hover { background:rgba(0,0,0,.08); }
+  .chipbox input { border:0; outline:0; padding:6px 5px; width:100%; font:inherit; }
+
+  .picks { margin-bottom:10px; }
+  button.pick { border-color:var(--sky-edge); background:var(--sky-soft);
+                color:var(--sky-ink); padding:7px 12px; }
+  button.pick:hover { background:#d3ebfb; }
+  button.pick .n { display:inline-block; margin-left:6px; background:#fff;
+                   border-radius:999px; padding:0 7px; font-size:12px;
+                   color:var(--sky-deep); }
+  .progress { list-style:none; margin:14px 0 0; padding:0; font-size:13px; }
+  .prow { display:flex; gap:10px; align-items:baseline; padding:5px 0;
+          border-top:1px solid var(--line); }
+  .prow .pdom { font-weight:600; min-width:13em; }
+  .pstate.working { color:var(--sky-deep); }
+  .pstate.ok { color:var(--ok); font-weight:600; }
+  .pstate.bad { color:var(--pink); }
 </style>
 </head>
 <body>
-<div class="wrap">
-
+<div class="masthead"><div class="wrap">
 <h1>Sprinto cold outreach</h1>
-<p class="sub">Paste domains, run the pipeline, read each draft, approve one at a time.
-Nothing is ever sent without an approval, and every approved email goes to
-<code>TO_EMAIL</code> and nowhere else.</p>
+<p class="sub">Pick a list of domains, run the research, then read each draft and
+approve one at a time. Nothing is ever sent without an approval, and every approved
+email goes to <code>TO_EMAIL</code> and nowhere else.</p>
+</div></div>
+
+<div class="wrap">
 
 {% if message %}<div class="note ok">{{ message }}</div>{% endif %}
 {% if error %}<div class="note bad">{{ error }}</div>{% endif %}
@@ -62,20 +139,46 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 {% endif %}
 
 <div class="box">
-  <form method="post" action="/run">
-    <label for="domains">Domains (one per line, or comma separated)</label>
-    <textarea id="domains" name="domains" rows="5"
-      placeholder="https://www.example.com/pricing&#10;another.io"></textarea>
-    <label for="passcode">Passcode</label>
-    <input type="password" id="passcode" name="passcode" autocomplete="off">
-    <div class="row" style="margin-top:12px">
-      <button class="primary" type="submit">Run</button>
-      <span class="muted">Sent today: {{ cap.used }} of {{ cap.cap }}
-        ({{ cap.left }} left under the daily cap)</span>
-    </div>
-  </form>
-  <div id="job" class="muted" style="margin-top:10px"></div>
+  <label for="chipinput">Domains to research</label>
+  <p class="muted" style="margin:0 0 8px">Click a list below to fill this in, or type
+    a domain and press Enter. Up to {{ max_domains }} per run.</p>
+
+  {% if demo_domains %}
+  <div class="row picks">
+    <span class="muted">Start from a list:</span>
+    {% for label, domains in demo_domains.items() %}
+    <button type="button" class="pick" data-pick="{{ label }}">{{ label }}
+      <span class="n">{{ domains|length }}</span></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="chipbox" id="chipbox">
+    <ul class="chips" id="chips" aria-label="Domains in this run"></ul>
+    <input type="text" id="chipinput" autocomplete="off" spellcheck="false"
+           placeholder="acme.com" aria-describedby="chipcount">
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <span class="muted" id="chipcount" role="status" aria-live="polite">No companies yet</span>
+    <span style="flex:1"></span>
+    <button type="button" id="clearall">Clear all</button>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button class="primary" type="button" id="runbtn" data-max="{{ max_domains }}" disabled>Run</button>
+    <span class="muted">Sent today: {{ cap.used }} of {{ cap.cap }}
+      ({{ cap.left }} left under the daily cap)</span>
+  </div>
+
+  <ul class="progress" id="progress"></ul>
+  <div class="row" id="donerow" style="margin-top:10px; display:none">
+    <button class="primary" type="button" id="showresults">Show the drafts</button>
+    <span class="muted">Your run is saved. This opens the review list below.</span>
+  </div>
 </div>
+
+<script id="demolist" type="application/json">{{ demo_domains|tojson }}</script>
 
 <h2>Review ({{ review|length }})</h2>
 {% if not review %}
@@ -100,18 +203,20 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
   <ul class="flags">
     {% for f in c.flags %}<li>{{ f }}</li>{% endfor %}
     {% for f in c.check_flags %}<li class="check">check: {{ f }}</li>{% endfor %}
-    {% if not c.flags and not c.check_flags %}<li style="background:#e8f4ee;border-color:#bcdcca">no flags</li>{% endif %}
+    {% if not c.flags and not c.check_flags %}<li class="clear">no flags</li>{% endif %}
   </ul>
 
   {% if c.status in ('queued', 'rejected') %}
   <form method="post" action="/approve">
     <input type="hidden" name="company_id" value="{{ c.id }}">
+    {% if c.poc_email %}
+    <p class="muted"><strong>Addressed to:</strong> {{ c.poc_name }}, {{ c.poc_title }}
+      &lt;{{ c.poc_email }}&gt; &mdash; the email is delivered to <code>TO_EMAIL</code>, not to them.</p>
+    {% endif %}
     <label>Subject</label>
     <input type="text" name="subject" value="{{ c.subject }}">
     <label>Body ({{ c.body.split()|length }} words)</label>
     <textarea name="body" rows="9">{{ c.body }}</textarea>
-    <label>Passcode</label>
-    <input type="password" name="passcode" autocomplete="off">
     <div class="row" style="margin-top:10px">
       <button class="primary" type="submit">Approve and send</button>
       <button type="submit" formaction="/save">Save edit</button>
@@ -121,11 +226,10 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
     <input type="hidden" name="company_id" value="{{ c.id }}">
     <input type="text" name="reason" placeholder="Reject reason (logged)"
            style="flex:1 1 240px">
-    <input type="password" name="passcode" placeholder="Passcode" autocomplete="off"
-           style="flex:0 1 140px">
     <button class="danger" type="submit">Reject</button>
   </form>
   {% else %}
+  {% if c.poc_email %}<p class="muted"><strong>Addressed to:</strong> {{ c.poc_name }}, {{ c.poc_title }} &lt;{{ c.poc_email }}&gt;</p>{% endif %}
   <p><strong>{{ c.subject }}</strong></p>
   <p style="white-space:pre-wrap">{{ c.body }}</p>
   {% endif %}
@@ -226,24 +330,171 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 
 </div>
 <script>
-let wasRunning = false;
-async function poll() {
-  try {
-    const job = await (await fetch('/job')).json();
-    const el = document.getElementById('job');
-    if (job.state === 'running') {
-      wasRunning = true;
-      el.textContent = `Running: ${job.done} of ${job.total} done. ${job.message}`;
-    } else if (wasRunning && job.state === 'done') {
-      location.href = '/?message=' + encodeURIComponent('Run finished.');
-      return;
-    } else if (job.state === 'done') {
-      el.textContent = 'Last run finished.';
-    }
-  } catch (e) { /* page works without this */ }
-  setTimeout(poll, 2500);
+// Mirrors app/clean.py. The server re-cleans everything; this is only so you can see
+// what you are about to run before any credit is spent.
+function cleanDomain(raw) {
+  let d = (raw || "").trim().replace(/^["'<>]+|["'<>]+$/g, "").toLowerCase();
+  if (!d) return "";
+  d = d.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+  d = d.split("/")[0].split("?")[0].split("#")[0];
+  d = d.split("@").pop();
+  d = d.split(":")[0];
+  if (d.startsWith("www.")) d = d.slice(4);
+  d = d.replace(/^\.+|\.+$/g, "");
+  if (!d.includes(".") || d.includes(" ")) return "";
+  if (!/^[a-z0-9.-]+$/.test(d)) return "";
+  return d;
 }
-poll();
+
+const MAX = Number(document.getElementById("runbtn").dataset.max || 15);
+const chipsEl = document.getElementById("chips");
+const input = document.getElementById("chipinput");
+const countEl = document.getElementById("chipcount");
+const runBtn = document.getElementById("runbtn");
+const progressEl = document.getElementById("progress");
+const doneRow = document.getElementById("donerow");
+let chips = [];
+let running = false;
+
+function whyInvalid(raw) {
+  if (!raw.includes(".")) return "needs a dot, like acme.com";
+  return "not a web address";
+}
+
+function addToken(raw) {
+  const t = (raw || "").trim().replace(/[,;.]+$/, "");
+  if (!t) return;
+  const value = cleanDomain(t);
+  if (value) {
+    if (chips.some(c => c.ok && c.value === value)) return;   // duplicates merge
+    if (chips.filter(c => c.ok).length >= MAX) {
+      if (!chips.some(c => !c.ok && c.raw === t))
+        chips.push({ raw: t, ok: false, reason: "over the " + MAX + " limit" });
+      return;
+    }
+    chips.push({ raw: t, value: value, ok: true });
+  } else {
+    if (chips.some(c => !c.ok && c.raw === t)) return;
+    chips.push({ raw: t, ok: false, reason: whyInvalid(t) });
+  }
+}
+
+function addText(text) { (text || "").split(/[\s,;]+/).forEach(addToken); render(); }
+
+function render() {
+  chipsEl.textContent = "";
+  chips.forEach((c, i) => {
+    const li = document.createElement("li");
+    li.className = "chip" + (c.ok ? "" : " bad");
+    const name = document.createElement("span");
+    name.textContent = c.ok ? c.value : c.raw;
+    li.appendChild(name);
+    if (!c.ok) {
+      const why = document.createElement("em");
+      why.textContent = "- " + c.reason;
+      li.appendChild(why);
+    }
+    const x = document.createElement("button");
+    x.type = "button"; x.className = "x"; x.textContent = "\u00d7";
+    x.setAttribute("aria-label", "Remove " + (c.ok ? c.value : c.raw));
+    x.addEventListener("click", () => { chips.splice(i, 1); render(); });
+    li.appendChild(x);
+    chipsEl.appendChild(li);
+  });
+  const ok = chips.filter(c => c.ok).length, bad = chips.length - ok;
+  countEl.textContent = (ok || bad)
+    ? ok + (ok === 1 ? " domain ready" : " domains ready") + (bad ? ", " + bad + " invalid" : "")
+    : "No domains yet";
+  updateRun();
+}
+
+function updateRun() {
+  runBtn.disabled = running || !chips.some(c => c.ok);
+}
+
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addText(input.value); input.value = ""; }
+  else if (e.key === "Backspace" && input.value === "" && chips.length) { chips.pop(); render(); }
+});
+input.addEventListener("blur", () => { if (input.value.trim()) { addText(input.value); input.value = ""; } });
+input.addEventListener("paste", e => {
+  e.preventDefault(); addText((e.clipboardData || window.clipboardData).getData("text")); input.value = "";
+});
+document.getElementById("chipbox").addEventListener("click", e => {
+  if (e.target.id === "chipbox" || e.target === chipsEl) input.focus();
+});
+["dragover", "drop"].forEach(ev => document.getElementById("chipbox").addEventListener(ev, e => {
+  e.preventDefault();
+  if (ev === "drop") addText(e.dataTransfer.getData("text"));
+}));
+document.getElementById("clearall").addEventListener("click", () => { chips = []; render(); });
+const PICKS = JSON.parse(document.getElementById("demolist").textContent || "{}");
+document.querySelectorAll("button.pick").forEach(btn => {
+  btn.addEventListener("click", () => {
+    addText((PICKS[btn.dataset.pick] || []).join(" "));
+    input.focus();
+  });
+});
+
+function addRow(domain) {
+  const li = document.createElement("li");
+  li.className = "prow";
+  const d = document.createElement("span"); d.className = "pdom"; d.textContent = domain;
+  const s = document.createElement("span"); s.className = "pstate muted"; s.textContent = "waiting";
+  li.appendChild(d); li.appendChild(s); progressEl.appendChild(li);
+  return s;
+}
+
+runBtn.addEventListener("click", async () => {
+  running = true; updateRun();
+  doneRow.style.display = "none";
+  progressEl.textContent = "";
+  const list = chips.filter(c => c.ok).map(c => c.value);
+  const rows = {};
+  list.forEach(d => { rows[d] = addRow(d); });
+  let runId = "";
+  for (const d of list) {
+    rows[d].className = "pstate working"; rows[d].textContent = "researching";
+    try {
+      const res = await fetch("/run-domain", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ domain: d, run_id: runId }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        rows[d].className = "pstate bad";
+        rows[d].textContent = j.error || "refused";
+        if (res.status === 403) {
+          rows[d].textContent = "signed out - reload the page";
+          list.filter(x => rows[x].textContent === "waiting")
+              .forEach(x => { rows[x].textContent = "not started"; });
+          break;
+        }
+        continue;
+      }
+      runId = j.run_id;
+      if (j.status === "queued") {
+        rows[d].className = "pstate ok";
+        rows[d].textContent = "ready to review - " + j.tier + " priority";
+      } else if (j.status === "dropped") {
+        rows[d].className = "pstate muted";
+        rows[d].textContent = "not a fit - " + j.rule;
+      } else {
+        rows[d].className = "pstate bad";
+        rows[d].textContent = (j.reason || "did not finish") + " - retry";
+      }
+    } catch (err) {
+      rows[d].className = "pstate bad";
+      rows[d].textContent = "connection problem - retry";
+    }
+  }
+  running = false; updateRun();
+  doneRow.style.display = "";
+});
+
+document.getElementById("showresults").addEventListener("click", () => { location.href = "/"; });
+render();
 </script>
 </body>
 </html>

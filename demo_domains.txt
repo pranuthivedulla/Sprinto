@@ -1,0 +1,24 @@
+# Starter lists so you can click instead of typing.
+# Group headings become buttons on the page. Replace these with your own targets:
+# they are real, live companies in the three verticals, but nobody has checked
+# them against the 10-100 employee rule - the pipeline decides that, not this file.
+
+# Healthtech
+healthplix.com
+eka.care
+qure.ai
+cloudphysician.net
+docon.co.in
+
+# Fintech
+signzy.com
+decentro.tech
+setu.co
+perfios.com
+m2pfintech.com
+
+# Cleantech
+sensehawk.com
+ecolibrium.io
+climatiq.io
+watershed.com

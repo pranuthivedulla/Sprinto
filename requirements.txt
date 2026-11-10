@@ -3,3 +3,5 @@ uvicorn
 jinja2
 python-multipart
 requests
+# only needed when DATABASE_URL is set (Postgres); SQLite is built in
+psycopg[binary]

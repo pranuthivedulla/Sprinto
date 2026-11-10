@@ -55,6 +55,7 @@ Rank Hunter results by title: Head of Security / CISO / GRC lead > CTO / VP Engi
 
 ## 7. Email rules
 - Addressed to the person by name; subject line is specific to the company
+- When a contact was found, the review card shows who the draft is addressed to (name, title, email) and the demo email carries a banner naming that person. Delivery is always TO_EMAIL, never the contact. No contact found = no draft (the company is dropped)
 - One hook that cites a signal we actually found
 - The two pain points come from the person's role (security lead: questionnaires and audit time; founder: deals blocked by missing certification)
 - About 120 words or fewer, one clear ask, no attachments

@@ -10,6 +10,22 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+class Deadline:
+    """Wall-clock budget for one domain. Serverless gives us a hard ceiling."""
+
+    def __init__(self, seconds):
+        self.end = time.monotonic() + seconds
+
+    def left(self):
+        return self.end - time.monotonic()
+
+    def room_for_a_fetch(self):
+        return self.left() > MIN_FETCH_SECONDS
+
+
+MIN_FETCH_SECONDS = 10
+
+
 USER_AGENT = (
     "Mozilla/5.0 (compatible; SprintoOutreachBot/1.0; MESA coursework; "
     "contact via sender address)"
@@ -126,13 +142,20 @@ def html_to_text(html):
     return text.strip(), parser.links
 
 
-def fetch(url):
-    """Return a page dict. status is 'ok', 'not_readable' or 'error'."""
+def fetch(url, deadline=None):
+    """Return a page dict. status is 'ok', 'not_readable', 'error' or 'timed_out'."""
     page = {"url": url, "status": "error", "text": "", "links": [], "note": ""}
+    timeout = TIMEOUT
+    if deadline is not None:
+        timeout = max(2, min(TIMEOUT, int(deadline.left()) - 1))
     try:
         resp = requests.get(
-            url, timeout=TIMEOUT, headers={"User-Agent": USER_AGENT}, allow_redirects=True
+            url, timeout=timeout, headers={"User-Agent": USER_AGENT}, allow_redirects=True
         )
+    except requests.Timeout:
+        page["status"] = "timed_out"
+        page["note"] = "timed out - we did not get to read this page"
+        return page
     except requests.RequestException as exc:
         page["note"] = f"{type(exc).__name__}"
         return page
@@ -187,7 +210,7 @@ def _links_for(kind, base, links):
     return found[:2]
 
 
-def scrape_company(domain, kinds=None):
+def scrape_company(domain, kinds=None, deadline=None):
     """Scrape the six page kinds for a domain.
 
     Returns {"pages": {kind: page}, "unfetched": [urls]} where unfetched is the
@@ -197,27 +220,43 @@ def scrape_company(domain, kinds=None):
     base = f"https://{domain}"
     pages, unfetched = {}, []
 
-    home = fetch(base + "/")
-    if home["status"] == "error":
-        home = fetch(f"http://{domain}/")
+    def room():
+        return deadline is None or deadline.room_for_a_fetch()
+
+    home = fetch(base + "/", deadline)
+    if home["status"] == "error" and room():
+        home = fetch(f"http://{domain}/", deadline)
     pages["home"] = home
     home_links = home.get("links", [])
 
     for kind in kinds:
         if kind == "home":
             continue
+        if not room():
+            pages[kind] = {
+                "url": urljoin(base, PAGE_PATHS[kind][0]),
+                "status": "skipped",
+                "text": "",
+                "links": [],
+                "note": "skipped - ran out of time, not read",
+            }
+            continue
         page = None
         for path in PAGE_PATHS[kind]:
+            if not room():
+                break
             time.sleep(POLITE_DELAY)
-            candidate = fetch(urljoin(base, path))
+            candidate = fetch(urljoin(base, path), deadline)
             if _accept(candidate, kind):
                 page = candidate
                 break
             page = page or candidate
-        if page is None or page["status"] != "ok":
+        if (page is None or page["status"] != "ok") and room():
             for url in _links_for(kind, home["url"] or base, home_links):
+                if not room():
+                    break
                 time.sleep(POLITE_DELAY)
-                candidate = fetch(url)
+                candidate = fetch(url, deadline)
                 if _accept(candidate, kind):
                     page = candidate
                     break

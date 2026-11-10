@@ -1,0 +1,3 @@
+# Only for running the offline tests; not installed on Vercel.
+-r requirements.txt
+httpx

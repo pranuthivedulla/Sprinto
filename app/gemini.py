@@ -4,6 +4,7 @@ Tries the Interactions API first (the current endpoint) and falls back to the
 legacy generateContent endpoint, so a key that only works on one of them still runs.
 Which endpoint answered is recorded in LAST_ENDPOINT for the spike report.
 """
+import contextvars
 import json
 import re
 
@@ -15,7 +16,22 @@ INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interaction
 GENERATE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
-TIMEOUT = 60
+TIMEOUT = 45
+
+# Set per domain by the pipeline. A model call must never outlast the budget for
+# the whole domain, or the request dies holding an answer nobody receives.
+_deadline = contextvars.ContextVar("gemini_deadline", default=None)
+
+
+def set_deadline(deadline):
+    _deadline.set(deadline)
+
+
+def _timeout():
+    deadline = _deadline.get()
+    if deadline is None:
+        return TIMEOUT
+    return max(5, min(TIMEOUT, int(deadline.left()) - 2))
 
 LAST_ENDPOINT = ""
 _WORKING_ENDPOINT = ""
@@ -58,7 +74,8 @@ def _call_interactions(prompt, temperature):
         "input": prompt,
         "generation_config": {"temperature": temperature},
     }
-    resp = requests.post(INTERACTIONS_URL, headers=_headers(), json=body, timeout=TIMEOUT)
+    resp = requests.post(INTERACTIONS_URL, headers=_headers(), json=body,
+                         timeout=_timeout())
     if resp.status_code != 200:
         raise RuntimeError(f"interactions HTTP {resp.status_code}: {resp.text[:300]}")
     text = _parse_interactions(resp.json())
@@ -73,7 +90,7 @@ def _call_generate(prompt, temperature):
         "generationConfig": {"temperature": temperature},
     }
     url = GENERATE_URL.format(model=model_name())
-    resp = requests.post(url, headers=_headers(), json=body, timeout=TIMEOUT)
+    resp = requests.post(url, headers=_headers(), json=body, timeout=_timeout())
     if resp.status_code != 200:
         raise RuntimeError(f"generateContent HTTP {resp.status_code}: {resp.text[:300]}")
     text = _parse_generate(resp.json())
@@ -95,6 +112,8 @@ def call_model(prompt, temperature=0.2):
             text = fn(prompt, temperature)
             LAST_ENDPOINT = _WORKING_ENDPOINT = endpoint
             return text
+        except requests.Timeout:
+            raise RuntimeError("the AI did not answer in time")
         except RuntimeError as exc:
             errors.append(f"{endpoint}: {exc}")
     raise RuntimeError(" | ".join(errors))

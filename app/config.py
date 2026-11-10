@@ -45,6 +45,12 @@ def get_int(name, default):
         return default
 
 
+def is_production():
+    """True on Vercel. Used to refuse to start without a passcode or a cookie secret."""
+    load_env()
+    return bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"))
+
+
 def missing_keys(names):
     """Return the names that are not set. Never returns the values."""
     return [n for n in names if not get(n)]
@@ -57,3 +63,10 @@ EMPLOYEE_MAX = 100
 MAX_LOOP_FETCHES = 2
 EMAIL_WORD_LIMIT = 130  # "about 120 words or fewer" with a little slack before flagging
 GEMINI_DEFAULT_MODEL = "gemini-3.8-flash"
+MAX_DOMAINS_PER_RUN = 15   # one run of the chip input; not the daily send cap
+# One serverless invocation handles one domain, so the work has to fit inside it.
+DOMAIN_TIME_BUDGET = 55    # seconds of wall clock for a single domain
+DEMO_DOMAINS_FILE = "demo_domains.txt"
+SESSION_MAX_AGE = 12 * 60 * 60   # how long one passcode entry lasts
+LOGIN_MAX_FAILURES = 5           # per window, per IP
+LOGIN_WINDOW_SECONDS = 10 * 60

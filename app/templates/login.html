@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Sprinto cold outreach</title>
+<style>
+  :root { --sky-wash:#f3fafe; --sky-soft:#e3f3fd; --sky-edge:#bfe3f8;
+          --sky:#0a93d6; --sky-deep:#06739f; --sky-ink:#05516f;
+          --pink:#e8368f; --pink-wash:#fdeef6; --pink-edge:#f7c2dc;
+          --ink:#102432; --muted:#5a6b7a; --line:#dbe9f2; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center;
+         justify-content:center; padding:24px 16px; background:var(--sky-wash);
+         color:var(--ink);
+         font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px;
+          padding:26px; width:100%; max-width:380px;
+          box-shadow:0 1px 2px rgba(16,36,50,.04), 0 6px 18px rgba(10,147,214,.06); }
+  h1 { display:flex; align-items:center; gap:10px; font-size:19px; margin:0 0 6px; }
+  h1::before { content:""; width:6px; height:22px; border-radius:3px;
+               background:linear-gradient(180deg,var(--sky) 60%,var(--pink) 60%); }
+  p { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  label { display:block; font-weight:600; font-size:13px; margin:0 0 4px; }
+  input { width:100%; padding:9px 10px; border:1px solid var(--sky-edge);
+          border-radius:8px; font:inherit; }
+  input:focus { outline:2px solid var(--sky); outline-offset:1px; }
+  button { margin-top:14px; width:100%; padding:10px; border:1px solid var(--sky);
+           border-radius:8px; background:var(--sky); color:#fff; font:inherit;
+           font-weight:600; cursor:pointer; }
+  button:hover { background:var(--sky-deep); border-color:var(--sky-deep); }
+  .note { background:var(--pink-wash); border:1px solid var(--pink-edge);
+          border-radius:8px; padding:10px 12px; font-size:13px; margin:0 0 16px; }
+</style>
+</head>
+<body>
+<form class="card" method="post" action="/login">
+  <h1>Sprinto cold outreach</h1>
+  <p>This page lists real people's names and work email addresses, so it stays closed.</p>
+  {% if error %}<div class="note">{{ error }}</div>{% endif %}
+  <label for="passcode">Passcode</label>
+  <input type="password" id="passcode" name="passcode" autocomplete="current-password"
+         autofocus>
+  <button type="submit">Open the review page</button>
+</form>
+</body>
+</html>

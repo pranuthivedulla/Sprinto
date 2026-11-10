@@ -60,6 +60,14 @@ def send(company_id, subject, body):
     message["From"] = sender
     message["To"] = to_address
     message["Subject"] = subject
+    # Show who the draft is for, but never send to them: delivery stays on TO_EMAIL.
+    row = db.get_company(company_id)
+    if row is not None and row["poc_email"]:
+        banner = (f"[Demo redirect] This draft is addressed to {row['poc_name']}, "
+                  f"{row['poc_title']} <{row['poc_email']}>. "
+                  f"It was delivered to you, not to them.\n\n")
+        message["X-Intended-Recipient"] = row["poc_email"]
+        body = banner + body
     message.set_content(body)
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:

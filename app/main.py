@@ -8,7 +8,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import clean, config, db, mailer, pipeline
+from . import auth, clean, config, db, mailer, pipeline
 
 app = FastAPI(title="Sprinto cold outreach")
 templates = Jinja2Templates(directory=str(config.ROOT / "app" / "templates"))
@@ -16,6 +16,22 @@ templates = Jinja2Templates(directory=str(config.ROOT / "app" / "templates"))
 TIER_ORDER = {"High": 0, "Medium": 1, "Low": 2}
 REQUIRED_KEYS = ["GEMINI_API_KEY", "HUNTER_API_KEY", "REVIEW_PASSCODE", "TO_EMAIL"]
 SEND_KEYS = ["GMAIL_SENDER_ADDRESS", "GMAIL_APP_PASSWORD", "TO_EMAIL"]
+
+
+if config.is_production():
+    for required in ("REVIEW_PASSCODE", "SESSION_SECRET"):
+        if not config.get(required):
+            raise RuntimeError(
+                f"{required} is not set. Refusing to serve the review page "
+                "unprotected in production."
+            )
+
+
+@app.middleware("http")
+async def _no_index(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 
 @app.on_event("startup")
@@ -32,9 +48,33 @@ def _loads(raw, default):
         return default
 
 
-def passcode_ok(given):
-    expected = config.get("REVIEW_PASSCODE")
-    return bool(expected) and given == expected
+def demo_domains():
+    """Starter lists from demo_domains.txt, grouped by the '# Heading' lines above them.
+
+    The file is the user's: these are suggestions to click, not a hard-coded list.
+    """
+    path = config.ROOT / config.DEMO_DOMAINS_FILE
+    if not path.exists():
+        return {}
+    groups, heading, seen = {}, "Demo list", set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            label = line.lstrip("#").strip()
+            # A one-or-two word heading names a group; longer lines are just notes.
+            if label and len(label.split()) <= 3:
+                heading = label
+            continue
+        domain = clean.clean_domain(line)
+        if domain and domain not in seen:
+            seen.add(domain)
+            groups.setdefault(heading, []).append(domain)
+    return {k: v[: config.MAX_DOMAINS_PER_RUN] for k, v in groups.items() if v}
+
+
+passcode_ok = auth.passcode_ok
 
 
 def _row_to_card(row):
@@ -73,16 +113,17 @@ def _page_context(request, message="", error=""):
     cards = [_row_to_card(r) for r in rows]
     review = [c for c in cards if c["status"] in ("queued", "approved", "rejected", "sent")]
     review.sort(key=lambda c: (TIER_ORDER.get(c["tier"], 9), c["id"]))
-    drops = [c for c in cards if c["status"] in ("dropped", "error")]
+    drops = [c for c in cards if c["status"] in ("dropped", "failed", "error")]
     return {
         "request": request,
         "message": message,
         "error": error,
-        "job": pipeline.JOB,
+        "demo_domains": demo_domains(),
         "run_id": run_id,
         "review": review,
         "drops": drops,
         "cap": mailer.cap_state(),
+        "max_domains": config.MAX_DOMAINS_PER_RUN,
         "missing_keys": config.missing_keys(REQUIRED_KEYS),
         "missing_send_keys": config.missing_keys(SEND_KEYS),
         "sent": [
@@ -97,17 +138,45 @@ def _page_context(request, message="", error=""):
     }
 
 
+@app.get("/login")
+def login_form(request: Request, error: str = ""):
+    if auth.authorized(request):
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse(
+        request=request, name="login.html", context={"error": error},
+        status_code=200,
+    )
+
+
+@app.post("/login")
+def login(request: Request, passcode: str = Form("")):
+    ip = auth.client_ip(request)
+    if auth.throttled(ip):
+        return templates.TemplateResponse(
+            request=request, name="login.html",
+            context={"error": "Too many wrong tries. Wait ten minutes."},
+            status_code=429,
+        )
+    if not auth.passcode_ok(passcode):
+        auth.record_failure(ip)
+        db.log("login_failed", f"ip={ip}")
+        return templates.TemplateResponse(
+            request=request, name="login.html",
+            context={"error": "That passcode is not right."},
+            status_code=401,
+        )
+    auth.clear_failures(ip)
+    return auth.set_cookie(RedirectResponse("/", status_code=303))
+
+
 @app.get("/")
 def index(request: Request, message: str = "", error: str = ""):
+    if not auth.authorized(request):
+        return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
         request=request, name="index.html",
         context=_page_context(request, message, error),
     )
-
-
-@app.get("/job")
-def job():
-    return JSONResponse(pipeline.JOB)
 
 
 def _back(message="", error=""):
@@ -117,26 +186,46 @@ def _back(message="", error=""):
     return RedirectResponse(f"/?{query}" if query else "/", status_code=303)
 
 
-@app.post("/run")
-def run(passcode: str = Form(""), domains: str = Form("")):
-    if not passcode_ok(passcode):
-        return _back(error="Wrong passcode. Run is an admin action.")
+@app.post("/run-domain")
+def run_domain(request: Request, passcode: str = Form(""),
+               domain: str = Form(""), run_id: str = Form("")):
+    """Research exactly one domain and return its result.
+
+    One domain per request, so the work fits inside a single serverless invocation.
+    The page calls this once per chip, in order.
+    """
+    if not auth.authorized(request, passcode):
+        return JSONResponse({"error": "Wrong passcode."}, status_code=403)
     missing = config.missing_keys(["GEMINI_API_KEY", "HUNTER_API_KEY"])
     if missing:
-        return _back(error=f"Not set in .env: {', '.join(missing)}")
-    cleaned = clean.clean_list(domains)
+        return JSONResponse(
+            {"error": f"Not set in .env: {', '.join(missing)}"}, status_code=400
+        )
+    cleaned = clean.clean_domain(domain)
     if not cleaned:
-        return _back(error="No usable domain in that list.")
-    thread, problem = pipeline.start(cleaned)
-    if problem:
-        return _back(error=problem)
-    return _back(message=f"Run started on {len(cleaned)} domains: {', '.join(cleaned)}")
+        return JSONResponse({"error": f"{domain!r} is not a usable domain."},
+                            status_code=400)
+
+    rid = int(run_id) if run_id.strip().isdigit() and db.run_exists(int(run_id)) else None
+    if rid is None:
+        rid = db.create_run(0)
+    done = db.count_companies(rid)
+    if done >= config.MAX_DOMAINS_PER_RUN:
+        return JSONResponse(
+            {"error": f"One run takes at most {config.MAX_DOMAINS_PER_RUN} domains.",
+             "run_id": rid},
+            status_code=400,
+        )
+
+    result = pipeline.process_domain_safely(rid, cleaned)
+    db.set_run_count(rid, done + 1)
+    return JSONResponse({"run_id": rid, **result})
 
 
 @app.post("/save")
-def save(passcode: str = Form(""), company_id: int = Form(...),
+def save(request: Request, passcode: str = Form(""), company_id: int = Form(...),
          subject: str = Form(""), body: str = Form("")):
-    if not passcode_ok(passcode):
+    if not auth.authorized(request, passcode):
         return _back(error="Wrong passcode.")
     db.update_company(company_id, email_subject=subject.strip(), email_body=body.strip(),
                       reviewer_action="edited")
@@ -145,8 +234,9 @@ def save(passcode: str = Form(""), company_id: int = Form(...),
 
 
 @app.post("/reject")
-def reject(passcode: str = Form(""), company_id: int = Form(...), reason: str = Form("")):
-    if not passcode_ok(passcode):
+def reject(request: Request, passcode: str = Form(""),
+           company_id: int = Form(...), reason: str = Form("")):
+    if not auth.authorized(request, passcode):
         return _back(error="Wrong passcode.")
     if not reason.strip():
         return _back(error="A reject needs a reason: that is what tunes the ICP rules.")
@@ -157,9 +247,9 @@ def reject(passcode: str = Form(""), company_id: int = Form(...), reason: str = 
 
 
 @app.post("/approve")
-def approve(passcode: str = Form(""), company_id: int = Form(...),
+def approve(request: Request, passcode: str = Form(""), company_id: int = Form(...),
             subject: str = Form(""), body: str = Form("")):
-    if not passcode_ok(passcode):
+    if not auth.authorized(request, passcode):
         return _back(error="Wrong passcode. Approve is an admin action.")
     row = db.get_company(company_id)
     if row is None:

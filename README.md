@@ -11,18 +11,20 @@ files in `design-reference/`. Those files are the source of truth for every rule
 ## Run it
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 cp .env.example .env        # then fill it in; .env is gitignored
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://127.0.0.1:8000.
+Open http://127.0.0.1:8000. It asks for `REVIEW_PASSCODE` before showing anything.
 
 Offline checks, which need no key and spend nothing:
 
 ```bash
 python -m tests.test_offline
 ```
+
+Leave `DATABASE_URL` empty locally and it uses SQLite in `data/`.
 
 ## The seven steps
 
@@ -113,3 +115,61 @@ Times are stored in UTC and shown in India time.
   "page not readable" and the company drops on filter 1 rather than being guessed at.
 - Google News RSS is unofficial. A failure is recorded as unknown, never as "no news".
 - About pages usually do not state a headcount. Unknown flags; it does not drop.
+
+## Deploying to Vercel
+
+The app is one Python function. `app/main.py` is one of the entrypoint names Vercel
+detects automatically, so there is no wrapper file; `vercel.json` only sets the
+duration limit and bundles the templates and `demo_domains.txt`.
+
+**1. Create the database first.** In the Vercel dashboard, Storage → Marketplace →
+Neon → create a Postgres database and connect it to the project. Neon gives two
+connection strings: use the **pooled** one. A page render opens several short
+connections and serverless keeps no pool between invocations, so the direct string
+will exhaust connections under any real use.
+
+**2. Create the project** from the GitHub repository. Vercel reads `requirements.txt`
+and `vercel.json` on its own.
+
+**3. Set the environment variables** in Project Settings → Environment Variables.
+Never in the repository: this repository is public.
+
+| Name | Notes |
+|------|-------|
+| `GEMINI_API_KEY` | |
+| `GEMINI_MODEL` | optional |
+| `HUNTER_API_KEY` | |
+| `GMAIL_SENDER_ADDRESS` | the throwaway sender |
+| `GMAIL_APP_PASSWORD` | 16 characters, no spaces |
+| `TO_EMAIL` | the only address this app will send to |
+| `DAILY_SEND_CAP` | 15 |
+| `REVIEW_PASSCODE` | the app refuses to start in production without it |
+| `SESSION_SECRET` | any long random string; signs the review cookie |
+| `DATABASE_URL` | Neon's **pooled** connection string |
+
+`maxDuration` in `vercel.json` is 300. Vercel's own documentation and third-party
+sources disagree about the Hobby ceiling, so if the deployment is rejected for that
+value, lower it to what your plan's dashboard states.
+
+**4. Deploy a preview, not production**, and run these five checks on the preview URL:
+
+| | Check | How |
+|---|---|---|
+| a | The page asks for the passcode | open the URL in a private window; it should redirect to `/login` |
+| b | One domain runs end to end inside the time limit | add one chip, Run, watch the row reach a verdict |
+| c | The Hunter cache survives a cold start | run the same domain twice, minutes apart; the second card is flagged "contact came from the Hunter cache" and your Hunter search count does not move |
+| d | An approved send lands in `TO_EMAIL` | approve one draft; the email should carry the `[Demo redirect]` banner naming the contact |
+| e | The caps work | approve past the daily cap and confirm the refusal; add a 16th domain to a run and confirm it is refused |
+
+Check (d) is the one most likely to fail: outbound SMTP from serverless is sometimes
+blocked. If it does fail, stop rather than switching to the Gmail API.
+
+## Testing
+
+`python -m tests.test_offline` stubs every external call, so it needs no keys and
+spends nothing. It covers the filters, ranking, the email code check, the chip
+cleaning, the passcode gate and throttle, the `/run-domain` endpoint, the demo
+redirect, and the SQL both database engines generate.
+
+The Postgres path has been checked structurally but has never run against a live
+server. Set `DATABASE_URL` to a Neon database and run the suite again to close that.

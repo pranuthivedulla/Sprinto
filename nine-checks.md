@@ -72,3 +72,12 @@ Rubric and rules written to rubric-and-rules.md (defaults listed at the bottom o
 
 ## Decision 13
 Build prompt written to CLAUDE_CODE_BUILD_PROMPT.md; references copied to design-reference/ (components-map-final.png = v6).
+
+## Decision 14 (approved)
+Components map redrawn as v7: five lanes (Growth Lead, System, Hunter.io / Apollo, AI, Gmail), first column "Actor", three flow styles (main, conditional, hand-off). Website and Google News are read inside the System lane (startup info); Hunter/Apollo is used only to find the contact. Map shows the send going to the identified contact; the demo redirects it to TO_EMAIL as the case requires. components-map-final.png is now v7.
+
+## Decision 15 (approved)
+The draft shows the scraped contact (name, title, email) on the review card and in a banner on the demo email, only when Hunter/Apollo returned one. Delivery stays TO_EMAIL. App edited (app/templates/index.html, app/mailer.py); offline tests 79 passed. Components map v8 = final.
+
+## Decision 16
+Change prompt for Claude Code written to CLAUDE_CODE_CHANGE_PROMPT.md: interactive chip input (default option B: chips plus optional demo list, still to be confirmed by the user), per-domain /run-domain flow, Postgres via DATABASE_URL, passcode gate on the public page, Vercel config, tests. Stop points before any production deploy.

@@ -272,7 +272,8 @@ PAGES = {
                 "text": "Open role: GRC Manager."},
 }
 
-scrape.scrape_company = lambda domain, kinds=None: {"pages": dict(PAGES), "unfetched": []}
+scrape.scrape_company = lambda domain, kinds=None, deadline=None: {
+    "pages": dict(PAGES), "unfetched": []}
 ai.extract_fields = lambda blob: fields_for(compliance_hiring=dict(hiring))
 ai.classify_vertical = lambda blob: dict(VERTICAL_OK)
 ai.classify_headlines = lambda c, d, h: []
@@ -286,7 +287,8 @@ news.fetch = lambda company, domain, force=False: ([], "api")
 hunter.search = lambda domain, force=False: (HUNTER, "api")
 
 run_id = db.create_run(1)
-company_id = pipeline.process_domain(run_id, "acme.io")
+result = pipeline.process_domain(run_id, "acme.io")
+company_id = result["company_id"]
 row = db.get_company(company_id)
 check("the company is queued for review", row["status"] == "queued")
 check("the tier is stored", row["tier"] == "Medium")
@@ -297,7 +299,7 @@ check("the draft passed the code check", row["check_flags_json"] == "[]")
 ai.extract_fields = lambda blob: fields_for(
     is_saas={"value": "no", "quote": "We are a consultancy", "source": "https://acme.io/",
              "verified": False})
-drop_id = pipeline.process_domain(run_id, "acme.io")
+drop_id = pipeline.process_domain(run_id, "acme.io")["company_id"]
 drop_row = db.get_company(drop_id)
 check("a failing company is dropped", drop_row["status"] == "dropped")
 check("the drop stores the rule", drop_row["drop_rule"] == qualify.HARD_FILTERS[0])
@@ -311,11 +313,17 @@ from app import main  # noqa: E402
 card = main._row_to_card(row)
 drop_card = main._row_to_card(drop_row)
 html = main.templates.get_template("index.html").render(
-    request=None, message="", error="", job=pipeline.JOB, run_id=run_id,
+    request=None, message="", error="", run_id=run_id,
     review=[card], drops=[drop_card], cap=mailer.cap_state(),
     missing_keys=[], missing_send_keys=[], sent=[],
+    demo_domains={"Healthtech": ["a.com", "b.com"]},
+    max_domains=config.MAX_DOMAINS_PER_RUN,
 )
 check("the card shows the company", "Acme Pay" in html)
+check("the page offers a one-click list button",
+      'data-pick="Healthtech"' in html and ">Healthtech" in html)
+check("the page offers the chip input, not a textarea",
+      'id="chipinput"' in html and "<textarea name=\"domains\"" not in html)
 check("the card shows the tier", ">MEDIUM<" in html.upper().replace(" ", "")
       or "Medium" in html)
 check("the card shows the draft subject", card["subject"] in html)
@@ -324,6 +332,182 @@ check("the card shows the contact reason", "Head of Security" in html)
 check("the drop log shows the rule", qualify.HARD_FILTERS[0] in html)
 check("approve, save and reject are all offered",
       "Approve and send" in html and "Save edit" in html and ">Reject<" in html)
+
+# --- database dialect: same tables, two engines ------------------------------
+print("database dialect")
+
+
+class FakeConn:
+    """Records the SQL it is handed, so the Postgres path can be read without a server."""
+    def __init__(self): self.sql = []
+    def execute(self, sql, params=None): self.sql.append(sql); return self
+
+
+def _as_postgres(fn):
+    os.environ["DATABASE_URL"] = "postgresql://user:pw@host/db"
+    config._ENV_LOADED = True
+    try:
+        return fn()
+    finally:
+        os.environ.pop("DATABASE_URL", None)
+
+
+check("SQLite is the default with no DATABASE_URL", not db.is_postgres())
+check("DATABASE_URL switches the dialect", _as_postgres(db.is_postgres))
+check("placeholders stay ? on SQLite", db._q("WHERE a=? AND b=?") == "WHERE a=? AND b=?")
+check("placeholders become %s on Postgres",
+      _as_postgres(lambda: db._q("WHERE a=? AND b=?")) == "WHERE a=%s AND b=%s")
+check("SQLite schema uses AUTOINCREMENT",
+      any("AUTOINCREMENT" in s for s in db.schema_statements()))
+check("Postgres schema uses SERIAL instead",
+      _as_postgres(lambda: all("AUTOINCREMENT" not in s for s in db.schema_statements())
+                   and any("SERIAL PRIMARY KEY" in s for s in db.schema_statements())))
+
+
+def _columns(statements):
+    return sorted(
+        line.strip().split()[0]
+        for s in statements if "companies" in s.split("(")[0]
+        for line in s.split("(", 1)[1].rsplit(")", 1)[0].splitlines()
+        if line.strip() and not line.strip().startswith(")")
+    )
+
+
+check("both engines declare exactly the same company columns",
+      _columns(db.schema_statements()) == _as_postgres(
+          lambda: _columns(db.schema_statements())))
+check("every table in the build prompt is created",
+      {"runs", "companies", "hunter_cache", "news_cache", "send_log"}
+      <= {s.split("IF NOT EXISTS")[1].split("(")[0].strip()
+          for s in db.schema_statements()})
+
+_c = FakeConn()
+db._upsert(_c, "hunter_cache", ["domain"], ["response_json", "fetched_at"], ("a", "b", "c"))
+check("SQLite caches with INSERT OR REPLACE", "INSERT OR REPLACE" in _c.sql[0])
+_c = FakeConn()
+_as_postgres(lambda: db._upsert(_c, "hunter_cache", ["domain"],
+                                ["response_json", "fetched_at"], ("a", "b", "c")))
+check("Postgres caches with ON CONFLICT DO UPDATE",
+      "ON CONFLICT (domain) DO UPDATE" in _c.sql[0] and "%s" in _c.sql[0])
+_c = FakeConn()
+_as_postgres(lambda: db._upsert(_c, "news_cache", ["company", "query"],
+                                ["headlines_json", "fetched_at"], ("a", "b", "c", "d")))
+check("the news cache keys on both columns", "ON CONFLICT (company,query)" in _c.sql[0])
+
+# --- the demo redirect: named in the email, never delivered to them ----------
+print("demo redirect")
+import smtplib  # noqa: E402
+
+os.environ["TO_EMAIL"] = "me@example.com"
+os.environ["GMAIL_SENDER_ADDRESS"] = "bot@example.com"
+os.environ["GMAIL_APP_PASSWORD"] = "x"
+os.environ["DAILY_SEND_CAP"] = "15"
+config._ENV_LOADED = True
+
+_sent = []
+
+
+class FakeSMTP:
+    def __init__(self, *a, **k): pass
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+    def starttls(self): pass
+    def login(self, *a): pass
+    def send_message(self, msg): _sent.append(msg)
+
+
+smtplib.SMTP = FakeSMTP
+
+mailer.send(company_id, "Subject here", "Hi Riya, body of the draft.")
+_msg = _sent[-1]
+check("the email is delivered to TO_EMAIL", _msg["To"] == "me@example.com")
+check("it is never delivered to the contact", "riya@acme.io" not in _msg["To"])
+check("it names the contact in a demo banner", "[Demo redirect]" in _msg.get_content())
+check("it carries the intended recipient header",
+      _msg["X-Intended-Recipient"] == "riya@acme.io")
+check("the stored draft stays free of the banner",
+      "[Demo redirect]" not in (db.get_company(company_id)["email_body"] or ""))
+
+_no_contact = db.insert_company(run_id, "nopoc.io", "queued", email_subject="s",
+                                email_body="b")
+mailer.send(_no_contact, "Subject", "Body with no contact.")
+_plain = _sent[-1]
+check("with no contact there is no banner", "[Demo redirect]" not in _plain.get_content())
+check("and no intended-recipient header", _plain["X-Intended-Recipient"] is None)
+check("but it still goes to TO_EMAIL", _plain["To"] == "me@example.com")
+
+check("the card shows who the draft is addressed to", "Addressed to:" in html)
+_blank = main._row_to_card(db.get_company(_no_contact))
+_html2 = main.templates.get_template("index.html").render(
+    request=None, message="", error="", run_id=run_id, review=[_blank], drops=[],
+    cap=mailer.cap_state(), missing_keys=[], missing_send_keys=[], sent=[],
+    demo_domains={}, max_domains=config.MAX_DOMAINS_PER_RUN)
+check("with no contact the card says nothing about one", "Addressed to:" not in _html2)
+
+# --- cleaning vectors, the ones the chip input mirrors -----------------------
+print("cleaning vectors")
+for raw, want in [
+    ("https://www.Example.com/pricing", "example.com"),
+    ("HTTP://ACME.IO", "acme.io"),
+    ("www.beta.co.uk/careers?x=1", "beta.co.uk"),
+    ("gamma.dev:8443", "gamma.dev"),
+    ("  delta.ai/  ", "delta.ai"),
+    ("banana", ""),
+    ("not a domain", ""),
+]:
+    check(f"{raw!r} cleans to {want!r}", clean.clean_domain(raw) == want)
+
+# --- the endpoints -----------------------------------------------------------
+print("endpoints")
+from fastapi.testclient import TestClient  # noqa: E402
+
+os.environ["REVIEW_PASSCODE"] = "letmein"
+os.environ["SESSION_SECRET"] = "test-secret"
+config._ENV_LOADED = True
+pipeline.process_domain_safely = lambda rid, d, budget=None: {
+    "company_id": db.insert_company(rid, d, "dropped", drop_rule="not SaaS"),
+    "domain": d, "status": "dropped", "rule": "not SaaS"}
+
+client = TestClient(main.app)
+check("the review page is closed without the cookie",
+      client.get("/", follow_redirects=False).status_code == 303)
+check("and it points at the passcode screen",
+      client.get("/", follow_redirects=False).headers["location"] == "/login")
+check("every response tells search engines to stay away",
+      client.get("/login").headers.get("X-Robots-Tag") == "noindex, nofollow")
+check("a wrong passcode is refused",
+      client.post("/login", data={"passcode": "nope"}).status_code == 401)
+check("the right passcode opens the page",
+      client.post("/login", data={"passcode": "letmein"},
+                  follow_redirects=False).status_code == 303)
+
+_fresh = TestClient(main.app)
+for _ in range(config.LOGIN_MAX_FAILURES):
+    _fresh.post("/login", data={"passcode": "nope"})
+check("too many wrong tries are throttled",
+      _fresh.post("/login", data={"passcode": "letmein"}).status_code == 429)
+db.clear_login_failures("testclient")
+
+check("run-domain refuses a stranger",
+      TestClient(main.app).post("/run-domain",
+                                data={"domain": "x.com"}).status_code == 403)
+
+_in = TestClient(main.app)
+_in.post("/login", data={"passcode": "letmein"})
+_r = _in.post("/run-domain", data={"domain": "https://www.One.com/x"})
+check("run-domain researches one domain for a signed-in reviewer", _r.status_code == 200)
+check("and cleans the domain on the server", _r.json()["domain"] == "one.com")
+_rid = _r.json()["run_id"]
+check("and writes it to the database",
+      any(c["domain"] == "one.com" for c in db.companies_for_run(_rid)))
+
+for i in range(config.MAX_DOMAINS_PER_RUN - 1):
+    _in.post("/run-domain", data={"domain": f"d{i}.com", "run_id": str(_rid)})
+_over = _in.post("/run-domain", data={"domain": "sixteenth.com", "run_id": str(_rid)})
+check(f"the {config.MAX_DOMAINS_PER_RUN + 1}th domain in a run is refused",
+      _over.status_code == 400)
+check("and the run still holds exactly the limit",
+      db.count_companies(_rid) == config.MAX_DOMAINS_PER_RUN)
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")
