@@ -126,3 +126,83 @@ binding constraint; at roughly 90 seconds per company, patience is.
 Unchanged: everything after the chips. The hard filters, ranking, contact choice,
 drafting and the human approval all run exactly as they do today on a typed domain.
 Components map needs a v9 redraw with the discovery box in front of step 1.
+
+## Decision 18 (approved)
+The app is deployed on Vercel at sprinto-bice.vercel.app, built from
+CLAUDE_CODE_CHANGE_PROMPT.md. What the serverless move actually settled, beyond
+what that prompt specified:
+
+One domain per request. The background thread is gone; POST /run-domain researches
+exactly one domain and returns its verdict, and the page calls it once per chip.
+Work after a response is not guaranteed to finish on Vercel, so nothing may outlive
+the request that started it.
+
+A domain gets 240 seconds of the 300 the function allows. The change prompt said to
+aim well under 60, and that target was written before anything had run: the first
+deployed run honoured a 55 second budget to the second, failed at 59, and the
+scrape had used all of it. A single model call may take up to 120 seconds, bounded
+by whatever the domain has left. The earlier ceiling of 45 was set when the whole
+domain had 55, and was never revisited.
+
+A step that does not complete is recorded as "not researched - retry", never as a
+verdict about the company. Before this, an unreadable site was filed as "not SaaS"
+and a Hunter outage as "no usable contact": infrastructure failures wearing the
+costume of a judgement. This earned itself on the first deployed run.
+
+Storage is Postgres when DATABASE_URL is set and SQLite when it is not, from one
+schema so the two cannot drift. The Hunter cache lives there deliberately, so a
+cold start cannot spend another of the month's searches on a domain already looked
+up: verified live, two runs of the same company, one search spent. A bad
+DATABASE_URL fails loudly rather than falling back to a file that vanishes on the
+next deploy.
+
+The review page needs the passcode to view, not only to act, because it lists real
+people's names, titles and work email addresses on a public URL. Signed HttpOnly
+SameSite cookie for 12 hours, five wrong tries per ten minutes per IP, noindex on
+every response. In production the app refuses to serve without REVIEW_PASSCODE and
+SESSION_SECRET, but answers 503 naming the missing variable rather than crashing:
+a deployment that is wrong should say what is wrong. Actions accept that cookie or
+an explicit passcode, so the passcode is typed once rather than on every card.
+
+Four bugs found only by running it, all fixed:
+- Hunter was asked for 25 results where the free plan allows 10 and rejects any
+  explicit limit, so every contact lookup returned 400. Hunter's own message is now
+  carried through instead of a bare status code.
+- Job titles were matched as substrings, and "cto" sits inside "director", so every
+  Director of anything was ranked as an engineering leader with a confident reason
+  printed beside it. Whole-word matching now. This is the worst shape a bug can take
+  here: not a wrong answer, a wrong answer that looks defensible.
+- A timeout on one AI endpoint aborted the call instead of trying the other, so the
+  fallback existed and could not run.
+- An empty subject or body replaced the stored draft with nothing.
+
+The offline tests ignore DATABASE_URL and use a temporary SQLite file unless
+--use-database-url is passed. They had written over a hundred rows into the
+deployed database and twice filled the real daily send cap with fixtures, which
+refused a genuine approval.
+
+Dependencies are pinned. Unpinned, Vercel installs whatever is newest rather than
+the versions the checks pass against.
+
+Trust page back to two paths, /trust and /security, matching evidence-map row 5.
+The homepage-link fallback still finds one at any other path.
+
+Verified on the deployment: the passcode gate, a full domain run inside the time
+limit, the Hunter cache surviving a cold start, an approved email arriving at
+TO_EMAIL with the contact named in the banner, the daily cap and the 16th-domain
+refusal, and three domains driven through the page with three different outcomes
+and two review cards. 144 offline checks pass against both engines.
+
+Unchanged throughout: the hard filters, the tiers, 10-100 employees, the three
+verticals, unknown = flag, the certification rule, title order, the email rules,
+human approval before every send, delivery only to TO_EMAIL, and the daily cap.
+
+## Decision 19 (approved)
+Row 1 stays strict: a company whose pages read but which never states a software
+product with pricing or a demo CTA is dropped, not flagged. Qure.ai was dropped
+this way on 11 Nov 2026 with four pages read cleanly, because it sells medical
+imaging AI to hospitals and publishes neither. The cost is real and falls on
+enterprise-sales companies, which is much of serious healthtech. It is kept because
+"we could not confirm they are SaaS, so we did not write to them" is defensible and
+"we assumed" is not, and because the Dropped table shows exactly what was lost and
+why. Watch that table when a week's list looks thin.
