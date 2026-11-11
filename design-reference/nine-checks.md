@@ -206,3 +206,51 @@ enterprise-sales companies, which is much of serious healthtech. It is kept beca
 "we could not confirm they are SaaS, so we did not write to them" is defensible and
 "we assumed" is not, and because the Dropped table shows exactly what was lost and
 why. Watch that table when a week's list looks thin.
+
+## Decision 20 (approved)
+Sequence 1 of the outreach-to-meeting workflow is built: one tool goes out and the
+app now reads what comes back. After a send, reply_status starts at no_reply; a
+Check replies action reads the sending account's mailbox, matches each message to
+the company it answers, and sets reply_status to interested, not_interested or
+no_reply from what the prospect wrote, storing the sentence that decided it. An
+interested reply stops there and says so. No calendar, no scheduling, no follow-up
+window, exactly as the brief asked.
+
+Decision 2 is untouched. The only outbound email is still the cold email, and a
+human still approves it. Nothing in Sequence 1 sends anything.
+
+Reading replies needs no new credential. The app password already used for SMTP
+logs in to imap.gmail.com unchanged, which is worth knowing before anyone sets up
+an OAuth flow for it. IMAP also works from Vercel, tested on the deployment; that
+was not a given, since serverless platforms block outbound ports often enough.
+
+Replies arrive at the outreach account rather than the reviewer's inbox, and that
+is what makes the demo honest rather than staged: the reviewer opens the delivered
+email in their own inbox and replies, the agent picks it up for real, and nothing
+is simulated. Replying from the outreach account instead sends the message the
+wrong way and the app correctly sees nothing.
+
+Three things learned by running it, all now covered by checks:
+- The quoted original has to be stripped before classifying. Left in, the model
+  reads our own pitch back to itself and calls every reply interested, including
+  an out-of-office.
+- Subjects are matched whole, after stripping Re: and Fwd: prefixes, never as a
+  substring. Two sent emails were "Security compliance for HealthPlix" and the same
+  plus " EMR"; a substring test matched one reply to both companies and would have
+  set both to interested. Caught before the live test, which then flipped only the
+  right one.
+- Spam is searched alongside the inbox. A reply to cold outreach is exactly what a
+  filter diverts, and matching is strict enough that widening the search adds no
+  noise.
+
+Verified live on 11 Nov 2026: a real reply classified interested on the quote
+"Would be interested to know more", the email that was not replied to left at
+no_reply.
+
+Not built, and still open: Sequence 2, meaning check_calendar, book_meeting and
+update_crm. Two decisions are waiting on it. Whether Sequence 2 sends and books
+without approval as the workflow draws it, which would override Decision 2 and
+needs recording if taken; the redirect to TO_EMAIL makes that safer than it sounds,
+but a calendar invite naming the real contact would reach them, so any invite must
+be redirected too. And whether free slots come from a stated availability or from a
+real calendar through OAuth.
