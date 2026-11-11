@@ -319,10 +319,25 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 
 <h2>Sent</h2>
 <div class="box">
+  <div class="row" style="margin-bottom:12px">
+    <form method="post" action="/check-replies">
+      <button type="submit">Check replies</button>
+    </form>
+    <span class="muted">Reads the sending account's inbox and sets each one to
+      interested, not interested or no reply. Scheduling is a separate build.</span>
+  </div>
 <table>
-  <tr><th>When</th><th>Domain</th><th>Subject</th><th>To</th></tr>
+  <tr><th>When</th><th>Domain</th><th>Subject</th><th>Reply</th></tr>
   {% for s in sent %}
-  <tr><td>{{ s.sent_at }}</td><td>{{ s.domain }}</td><td>{{ s.subject }}</td><td>{{ s.to_address }}</td></tr>
+  <tr>
+    <td>{{ s.sent_at }}</td><td>{{ s.domain }}</td><td>{{ s.subject }}</td>
+    <td>
+      {% if s.reply_status == 'interested' %}<span class="tier High">interested</span>
+      {% elif s.reply_status == 'not_interested' %}<span class="muted">not interested</span>
+      {% else %}<span class="muted">no reply{% if s.checked %}, checked {{ s.checked }}{% endif %}</span>{% endif %}
+      {% if s.reply_quote %}<div class="quote">{{ s.reply_quote }}</div>{% endif %}
+    </td>
+  </tr>
   {% endfor %}
   {% if not sent %}<tr><td colspan="4" class="muted">Nothing sent yet.</td></tr>{% endif %}
 </table>

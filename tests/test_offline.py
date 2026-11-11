@@ -729,6 +729,70 @@ with db.connect() as _c:
     check("and they exist in the live table",
           {"draft_subject", "draft_body"} <= db.existing_columns(_c, "companies"))
 
+
+# --- Sequence 1: what came back ----------------------------------------------
+print("reading replies")
+import email as _email  # noqa: E402
+from app import replies as _rep  # noqa: E402
+
+_lines = [
+    "From: Someone <someone@example.com>",
+    "Subject: Re: Security compliance",
+    "In-Reply-To: <abc123@mail>",
+    "",
+    "Yes, keen to see a demo.",
+    "",
+    "On Tue someone wrote:",
+    "> [Demo redirect] This draft is addressed to Someone",
+    "> Sprinto automates security compliance, SOC 2 and ISO 27001.",
+]
+_raw = _email.message_from_string(chr(10).join(_lines))
+_body = _rep.plain_body(_raw)
+check("the reply text is kept", "keen to see a demo" in _body)
+check("our own quoted email is stripped", "SOC 2" not in _body)
+check("the demo banner is stripped", "Demo redirect" not in _body)
+
+_co = db.insert_company(run_id, "replytest.test", "sent", company_name="Reply Test",
+                        email_subject="Security compliance", sent_message_id="<abc123@mail>")
+_row = db.get_company(_co)
+check("a reply is matched by message id",
+      _rep.matches(_row, {"in_reply_to": "<abc123@mail>", "references": "", "subject": "x"}))
+check("or by subject when the id is absent",
+      _rep.matches(_row, {"in_reply_to": "", "references": "",
+                          "subject": "Re: Security compliance"}))
+check("an unrelated message is not matched",
+      not _rep.matches(_row, {"in_reply_to": "<other@mail>", "references": "",
+                              "subject": "Lunch?"}))
+
+check("companies awaiting a reply are found",
+      any(r["id"] == _co for r in db.sent_awaiting_reply()))
+
+_rep.fetch_inbox = lambda: [{"in_reply_to": "<abc123@mail>", "references": "",
+                             "subject": "Re: Security compliance",
+                             "body": "Yes, keen to see a demo."}]
+ai.classify_reply = lambda body: {"status": "interested", "quote": "keen to see a demo"}
+_out = _rep.check()
+check("the reply is classified and stored",
+      db.get_company(_co)["reply_status"] == "interested")
+check("the deciding sentence is stored",
+      db.get_company(_co)["reply_quote"] == "keen to see a demo")
+check("an interested reply is surfaced", len(_rep.interested(_out)) == 1)
+check("a classified company is no longer awaiting a reply",
+      all(r["id"] != _co for r in db.sent_awaiting_reply()))
+
+_co2 = db.insert_company(run_id, "quiet.test", "sent", email_subject="Nothing",
+                         sent_message_id="<quiet@mail>")
+_rep.fetch_inbox = lambda: []
+_rep.check()
+check("no matching message leaves it at no reply",
+      (db.get_company(_co2)["reply_status"] or "no_reply") == "no_reply")
+check("but the check is timestamped", bool(db.get_company(_co2)["reply_checked_at"]))
+
+check("checking replies refuses a stranger",
+      TestClient(main.app).post("/check-replies",
+                                follow_redirects=False).headers["location"].endswith(
+          "error=Wrong+passcode."))
+
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")
 os.environ["DAILY_SEND_CAP"] = "2"

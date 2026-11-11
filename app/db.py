@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS companies (
     check_flags_json TEXT,
     reviewer_action TEXT,
     reject_reason TEXT,
+    sent_message_id TEXT,
+    reply_status TEXT,
+    reply_quote TEXT,
+    reply_checked_at TEXT,
     created_at TEXT NOT NULL,
     sent_at TEXT
 );
@@ -346,6 +350,16 @@ def record_send(company_id, to_address):
     return now
 
 
+def sent_awaiting_reply():
+    """Companies whose email went out and whose reply we have not classified yet."""
+    with connect() as conn:
+        return conn.execute(
+            _q("SELECT * FROM companies WHERE status='sent'"
+               " AND (reply_status IS NULL OR reply_status='no_reply')"
+               " ORDER BY id")
+        ).fetchall()
+
+
 def sends_today(day_start_utc):
     """Count sends since the given UTC timestamp (the start of today in India time)."""
     with connect() as conn:
@@ -358,7 +372,9 @@ def sends_today(day_start_utc):
 def sent_rows(limit=50):
     with connect() as conn:
         return conn.execute(
-            _q("SELECT s.sent_at, s.to_address, c.domain, c.email_subject"
+            _q("SELECT s.sent_at, s.to_address, c.id AS company_id, c.domain,"
+               " c.company_name, c.email_subject, c.reply_status, c.reply_quote,"
+               " c.reply_checked_at"
                " FROM send_log s LEFT JOIN companies c ON c.id = s.company_id"
                " ORDER BY s.id DESC LIMIT ?"),
             (limit,),

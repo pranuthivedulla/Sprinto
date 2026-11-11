@@ -8,7 +8,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import auth, clean, config, db, mailer, pipeline
+from . import auth, clean, config, db, mailer, pipeline, replies
 
 app = FastAPI(title="Sprinto cold outreach")
 templates = Jinja2Templates(directory=str(config.ROOT / "app" / "templates"))
@@ -148,6 +148,9 @@ def _page_context(request, message="", error=""):
                 "to_address": r["to_address"],
                 "domain": r["domain"],
                 "subject": r["email_subject"],
+                "reply_status": r["reply_status"] or "no_reply",
+                "reply_quote": r["reply_quote"] or "",
+                "checked": mailer.to_ist(r["reply_checked_at"]),
             }
             for r in db.sent_rows()
         ],
@@ -236,6 +239,32 @@ def run_domain(request: Request, passcode: str = Form(""),
     result = pipeline.process_domain_safely(rid, cleaned)
     db.set_run_count(rid, done + 1)
     return JSONResponse({"run_id": rid, **result})
+
+
+@app.post("/check-replies")
+def check_replies(request: Request, passcode: str = Form("")):
+    """Sequence 1: look at what came back and set reply_status. Nothing else.
+
+    No calendar, no scheduling. An interested reply stops here and says so.
+    """
+    if not auth.authorized(request, passcode):
+        return _back(error="Wrong passcode.")
+    try:
+        results = replies.check()
+    except Exception as exc:
+        return _back(error=f"Could not read the inbox: {exc}")
+    if not results:
+        return _back(message="No sent emails are waiting on a reply.")
+    keen = replies.interested(results)
+    if keen:
+        names = ", ".join(r.get("company_name") or r["domain"] for r in keen)
+        return _back(message=f"Interested: {names}. Sequence 1 stops here - "
+                             "scheduling is the next part, and is not built.")
+    counts = {}
+    for r in results:
+        counts[r["reply_status"]] = counts.get(r["reply_status"], 0) + 1
+    summary = ", ".join(f"{n} {s.replace('_', ' ')}" for s, n in sorted(counts.items()))
+    return _back(message=f"Checked {len(results)}: {summary}.")
 
 
 @app.post("/save")

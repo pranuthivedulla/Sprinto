@@ -291,3 +291,31 @@ def draft_email(person, company, hook_text, pains):
         temperature=0.4,
     )
     return str(data.get("subject", "")).strip(), str(data.get("body", "")).strip()
+
+
+# --- Sequence 1: what did the prospect say? ---------------------------------
+
+REPLY_PROMPT = """Read this reply to a cold outreach email and say what the person
+means. Nothing else about them is known; judge only the words below.
+
+{rules}
+
+Reply:
+---
+{body}
+---
+
+interested      they want to talk, meet, see a demo, or ask to know more
+not_interested  they decline, say no, ask to be removed, or say it is not relevant
+no_reply        an auto-reply, an out of office, or too little to tell either way
+
+Return: {{"status": "interested|not_interested|no_reply",
+          "quote": "the sentence you based that on, copied exactly"}}"""
+
+
+def classify_reply(body):
+    data = gemini.call_json(REPLY_PROMPT.format(rules=EVIDENCE_RULES, body=body[:4000]))
+    status = str(data.get("status", "")).strip().lower()
+    if status not in ("interested", "not_interested", "no_reply"):
+        status = "no_reply"
+    return {"status": status, "quote": str(data.get("quote", "")).strip()}

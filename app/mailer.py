@@ -6,6 +6,7 @@ Growth Lead actually works in.
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from email.utils import make_msgid
 
 from . import config, db
 
@@ -57,6 +58,10 @@ def send(company_id, subject, body):
         )
 
     message = EmailMessage()
+    # A reply carries this id back in In-Reply-To, which is how a reply is matched
+    # to the company it belongs to. Subject matching alone is not reliable.
+    msg_id = make_msgid()
+    message["Message-ID"] = msg_id
     message["From"] = sender
     message["To"] = to_address
     message["Subject"] = subject
@@ -76,5 +81,6 @@ def send(company_id, subject, body):
         smtp.send_message(message)
 
     sent_at = db.record_send(company_id, to_address)
+    db.update_company(company_id, sent_message_id=msg_id, reply_status="no_reply")
     db.log("sent", f"to={to_address}", company_id)
     return sent_at
