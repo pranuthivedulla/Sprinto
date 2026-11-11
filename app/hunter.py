@@ -43,12 +43,23 @@ def search(domain, force=False):
         raise RuntimeError("HUNTER_API_KEY is not set")
     resp = requests.get(
         API_URL,
-        params={"domain": domain, "api_key": key, "limit": 25},
+        # No limit parameter: the free plan caps results at 10 and rejects any
+        # explicit limit with a 400. Ten is plenty to pick one person by title.
+        params={"domain": domain, "api_key": key},
         timeout=TIMEOUT,
     )
     if resp.status_code != 200:
-        # Still cache the failure shape so a broken domain is not retried in the same run.
-        raise RuntimeError(f"Hunter HTTP {resp.status_code}")
+        # Hunter says what is wrong in the body. Carry it through: a bare status
+        # code sent us looking at the key when the problem was a parameter.
+        detail = ""
+        try:
+            detail = resp.json()["errors"][0].get("details", "")
+        except Exception:
+            pass
+        raise RuntimeError(
+            f"Hunter HTTP {resp.status_code}: {detail}" if detail
+            else f"Hunter HTTP {resp.status_code}"
+        )
     data = resp.json()
     db.hunter_store(domain, data)
     db.log("hunter_search", f"domain={domain}", None, None)

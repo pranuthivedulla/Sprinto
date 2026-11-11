@@ -284,6 +284,7 @@ ai.draft_email = lambda person, company, hook, pains: (
     "Hi Riya, I saw the GRC Manager role open at Acme Pay. Teams your size lose weeks to "
     "evidence collection and stall on questionnaires. Worth 15 minutes?")
 news.fetch = lambda company, domain, force=False: ([], "api")
+_REAL_HUNTER_SEARCH = hunter.search
 hunter.search = lambda domain, force=False: (HUNTER, "api")
 
 run_id = db.create_run(1)
@@ -598,6 +599,52 @@ except RuntimeError as e:
           str(e) == "the AI did not answer in time")
 check("the ceiling leaves room for a slow answer", gemini.TIMEOUT >= 60)
 gemini._call_interactions, gemini._call_generate = _real
+
+
+# --- Hunter: ask for what the plan allows, and repeat what it says -----------
+print("hunter request")
+import requests as _rq2  # noqa: E402
+from app import hunter as _h  # noqa: E402
+
+
+class _Resp:
+    def __init__(self, code, payload): self.status_code, self._p = code, payload
+    def json(self): return self._p
+
+
+_seen = {}
+
+
+def _fake_get(url, params=None, timeout=None):
+    _seen.update(params or {})
+    return _Resp(200, {"data": {"emails": []}})
+
+
+# The pipeline block above replaced hunter.search with a stub. Put the real one
+# back, or this tests the stub and passes whatever the code does.
+_h.search = _REAL_HUNTER_SEARCH
+_real_get = _rq2.get
+_rq2.get = _fake_get
+os.environ["HUNTER_API_KEY"] = "test-key"
+config._ENV_LOADED = True
+_h.search("limitcheck.test", force=True)
+check("the real request was made, not a stub", bool(_seen))
+check("no limit parameter is sent, because the free plan rejects one",
+      "limit" not in _seen)
+check("the domain and key are sent", _seen.get("domain") == "limitcheck.test")
+
+_rq2.get = lambda url, params=None, timeout=None: _Resp(
+    400, {"errors": [{"id": "pagination_error",
+                      "details": "The search results are limited to 10 email addresses."}]})
+try:
+    _h.search("err.test", force=True)
+    check("a Hunter error raises", False)
+except RuntimeError as e:
+    check("the error repeats what Hunter said, not just the status code",
+          "limited to 10 email addresses" in str(e) and "400" in str(e))
+    check("and that reaches the reviewer in plain words",
+          "limited to 10" in pipeline.plain_reason(e))
+_rq2.get = _real_get
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")

@@ -25,6 +25,8 @@ def plain_reason(exc):
         return "a key was rejected, check .env"
     if "connection" in text or "resolve" in text or "network" in text:
         return "could not reach the service"
+    if "hunter http" in text:
+        return str(exc)
     return f"{type(exc).__name__}"
 
 
