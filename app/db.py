@@ -75,7 +75,8 @@ CREATE TABLE IF NOT EXISTS send_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_id INTEGER NOT NULL,
     sent_at TEXT NOT NULL,
-    to_address TEXT NOT NULL
+    to_address TEXT NOT NULL,
+    subject TEXT
 );
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -357,12 +358,18 @@ def clear_login_failures(ip):
 
 # --- sending ----------------------------------------------------------------
 
-def record_send(company_id, to_address):
+def record_send(company_id, to_address, subject=""):
+    """The subject is stored here, not read off the company.
+
+    A company can be sent more than one thing - the cold email, then proposed
+    times, then an invite - and the log has to say which one went out.
+    """
     now = utcnow()
     with connect() as conn:
         conn.execute(
-            _q("INSERT INTO send_log (company_id, sent_at, to_address) VALUES (?,?,?)"),
-            (company_id, now, to_address),
+            _q("INSERT INTO send_log (company_id, sent_at, to_address, subject)"
+               " VALUES (?,?,?,?)"),
+            (company_id, now, to_address, subject),
         )
     return now
 
@@ -407,9 +414,9 @@ def sends_today(day_start_utc):
 def sent_rows(limit=50):
     with connect() as conn:
         return conn.execute(
-            _q("SELECT s.sent_at, s.to_address, c.id AS company_id, c.domain,"
-               " c.company_name, c.email_subject, c.reply_status, c.reply_quote,"
-               " c.reply_checked_at, c.meeting_status, c.meeting_time"
+            _q("SELECT s.sent_at, s.to_address, s.subject, c.id AS company_id,"
+               " c.domain, c.company_name, c.email_subject, c.reply_status,"
+               " c.reply_quote, c.reply_checked_at, c.meeting_status, c.meeting_time"
                " FROM send_log s LEFT JOIN companies c ON c.id = s.company_id"
                " ORDER BY s.id DESC LIMIT ?"),
             (limit,),

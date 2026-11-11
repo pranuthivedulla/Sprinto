@@ -860,6 +860,8 @@ check("the CRM field is written", db.get_company(_c1)["crm_logged"] == "yes")
 check("the run is finished", _out.get("finished") is True)
 check("the invite went to TO_EMAIL, never the contact",
       "Meeting booked" in _sent2[-1][1])
+check("two different things were sent to this company, not one twice",
+      len({s[1] for s in _sent2 if s[0] == _c1}) == 2)
 
 _c2 = _fresh("counter.test")
 _s2.start(_c2)
@@ -907,6 +909,9 @@ os.environ["DAILY_SEND_CAP"] = "2"
 check("cap reads from the environment", mailer.cap_state()["cap"] == 2)
 db.record_send(company_id, "someone@example.com")
 check("a send counts against the cap", mailer.cap_state()["used"] >= 1)
+db.record_send(company_id, "x@example.com", "A specific subject")
+check("the log records the subject that was actually sent",
+      any(r["subject"] == "A specific subject" for r in db.sent_rows(5)))
 
 
 os.environ["REVIEW_PASSCODE"] = "letmein"

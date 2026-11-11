@@ -152,7 +152,7 @@ def _page_context(request, message="", error=""):
                 "sent_at": mailer.to_ist(r["sent_at"]),
                 "to_address": r["to_address"],
                 "domain": r["domain"],
-                "subject": r["email_subject"],
+                "subject": r["subject"] or r["email_subject"],
                 "reply_status": r["reply_status"] or "no_reply",
                 "reply_quote": r["reply_quote"] or "",
                 "checked": mailer.to_ist(r["reply_checked_at"]),
