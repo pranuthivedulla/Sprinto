@@ -202,6 +202,11 @@ def process_domain(run_id, domain, budget=None):
         pains_json=pains,
         hook_json={**hook, "audit_verdict": verdict, "score": score,
                    "hunter_source": hunter_source, "news_source": news_source},
+        # draft_* is what the model wrote and is never overwritten. email_* is the
+        # live version the reviewer edits. The pair is the signal a feedback loop
+        # learns from; without it an edit destroys the thing worth learning.
+        draft_subject=subject,
+        draft_body=body,
         email_subject=subject,
         email_body=body,
         check_flags_json=check_flags,

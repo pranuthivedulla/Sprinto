@@ -703,6 +703,32 @@ _after = db.get_company(_draft)
 check("a real edit is still saved",
       _after["email_body"] == "My edit." and _after["email_subject"] == "Edited")
 
+
+# --- the generated draft survives an edit ------------------------------------
+print("draft is kept")
+check("the pipeline stores what the model wrote",
+      row["draft_body"] == row["email_body"] and bool(row["draft_body"]))
+_edited = db.insert_company(run_id, "keepdraft.test", "queued",
+                            draft_subject="Model subject", draft_body="What the model wrote.",
+                            email_subject="Model subject", email_body="What the model wrote.")
+_in.post("/save", data={"company_id": _edited, "subject": "Mine", "body": "What I sent."})
+_after = db.get_company(_edited)
+check("an edit changes the live version", _after["email_body"] == "What I sent.")
+check("and leaves the original intact",
+      _after["draft_body"] == "What the model wrote.")
+check("so the before-and-after pair exists to learn from",
+      _after["draft_body"] != _after["email_body"])
+
+print("new columns reach an existing table")
+_stmt = [s for s in db.schema_statements() if "companies" in s.split("(")[0]][0]
+_declared = {n for n, _ in db.declared_columns(_stmt)}
+check("draft columns are declared", {"draft_subject", "draft_body"} <= _declared)
+check("constraint lines are not read as columns",
+      all(not c.upper().startswith(("PRIMARY", "FOREIGN")) for c in _declared))
+with db.connect() as _c:
+    check("and they exist in the live table",
+          {"draft_subject", "draft_body"} <= db.existing_columns(_c, "companies"))
+
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")
 os.environ["DAILY_SEND_CAP"] = "2"

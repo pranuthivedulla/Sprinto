@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS companies (
     poc_reason TEXT,
     pains_json TEXT,
     hook_json TEXT,
+    draft_subject TEXT,
+    draft_body TEXT,
     email_subject TEXT,
     email_body TEXT,
     check_flags_json TEXT,
@@ -137,10 +139,46 @@ def connect():
 _SCHEMA_READY = False
 
 
+def declared_columns(statement):
+    """The (name, type) pairs a CREATE TABLE statement declares."""
+    body = statement.split("(", 1)[1].rsplit(")", 1)[0]
+    out = []
+    for line in body.splitlines():
+        line = line.strip().rstrip(",")
+        if not line or line.upper().startswith(("PRIMARY", "FOREIGN", "UNIQUE", "CHECK")):
+            continue
+        parts = line.split()
+        out.append((parts[0], " ".join(parts[1:])))
+    return out
+
+
+def existing_columns(conn, table):
+    if is_postgres():
+        rows = conn.execute(
+            "SELECT column_name AS name FROM information_schema.columns WHERE table_name=%s",
+            (table,),
+        ).fetchall()
+    else:
+        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return {r["name"] for r in rows}
+
+
 def init():
+    """Create the tables, then add any column a release has since introduced.
+
+    CREATE TABLE IF NOT EXISTS does nothing to a table that already exists, so a new
+    column would never reach a database that had already been created. Only nullable
+    columns are added this way; anything NOT NULL needs a deliberate migration.
+    """
     with connect() as conn:
         for statement in schema_statements():
             conn.execute(statement)
+            table = statement.split("IF NOT EXISTS")[1].split("(")[0].strip()
+            present = existing_columns(conn, table)
+            for name, coltype in declared_columns(statement):
+                if name in present or "NOT NULL" in coltype.upper():
+                    continue
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {coltype}")
 
 
 def ensure_schema():
