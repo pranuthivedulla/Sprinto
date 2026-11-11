@@ -117,10 +117,22 @@ def matches(company, message):
         blob = f"{message.get('in_reply_to', '')} {message.get('references', '')}"
         if sent_id in blob:
             return True
-    subject = (company["email_subject"] or "").strip()
-    if subject and subject.lower() in (message.get("subject") or "").lower():
-        return True
-    return False
+    # Exact subject, not substring: "...for HealthPlix" is contained in
+    # "...for HealthPlix EMR", so a substring test matches a reply to a different
+    # company and flips both.
+    subject = normalise_subject(company["email_subject"])
+    return bool(subject) and subject == normalise_subject(message.get("subject"))
+
+
+def normalise_subject(subject):
+    """Lowercased, with any number of Re:/Fwd: prefixes and extra spaces removed."""
+    text = (subject or "").strip().lower()
+    while True:
+        stripped = re.sub(r"^(re|fw|fwd)\s*:\s*", "", text)
+        if stripped == text:
+            break
+        text = stripped
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def check(company_ids=None):

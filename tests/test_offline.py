@@ -763,6 +763,19 @@ check("or by subject when the id is absent",
 check("an unrelated message is not matched",
       not _rep.matches(_row, {"in_reply_to": "<other@mail>", "references": "",
                               "subject": "Lunch?"}))
+check("repeated Re: prefixes are ignored",
+      _rep.normalise_subject("Re: RE: Fwd: Security compliance")
+      == "security compliance")
+_longer = db.get_company(db.insert_company(
+    run_id, "longer.test", "sent", email_subject="Security compliance EMR",
+    sent_message_id=None))
+_shorter = db.get_company(db.insert_company(
+    run_id, "shorter.test", "sent", email_subject="Security compliance",
+    sent_message_id=None))
+_msg = {"in_reply_to": "", "references": "", "subject": "Re: Security compliance EMR"}
+check("a reply matches only the email it answers", _rep.matches(_longer, _msg))
+check("and not a company whose subject is a prefix of it",
+      not _rep.matches(_shorter, _msg))
 
 check("companies awaiting a reply are found",
       any(r["id"] == _co for r in db.sent_awaiting_reply()))
