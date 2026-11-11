@@ -16,7 +16,9 @@ INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interaction
 GENERATE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
-TIMEOUT = 45
+# Ceiling for one model call. The domain's own deadline shortens it further,
+# so this only has to be larger than a slow answer, not small for safety.
+TIMEOUT = 120
 
 # Set per domain by the pipeline. A model call must never outlast the budget for
 # the whole domain, or the request dies holding an answer nobody receives.
@@ -113,9 +115,12 @@ def call_model(prompt, temperature=0.2):
             LAST_ENDPOINT = _WORKING_ENDPOINT = endpoint
             return text
         except requests.Timeout:
-            raise RuntimeError("the AI did not answer in time")
+            # One endpoint being slow is not a reason to give up on the other.
+            errors.append(f"{endpoint}: did not answer in time")
         except RuntimeError as exc:
             errors.append(f"{endpoint}: {exc}")
+    if all("did not answer in time" in e for e in errors):
+        raise RuntimeError("the AI did not answer in time")
     raise RuntimeError(" | ".join(errors))
 
 

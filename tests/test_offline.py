@@ -560,6 +560,45 @@ check("with both set, production serves normally",
       _as_vercel(lambda: TestClient(main.app).get("/", follow_redirects=False)
                  ).status_code == 303)
 
+
+# --- one slow AI endpoint must not kill the domain ---------------------------
+print("ai fallback")
+import requests as _rq  # noqa: E402
+from app import gemini  # noqa: E402
+
+
+def _endpoints(first_raises, second_returns):
+    calls = []
+
+    def a(prompt, temperature):
+        calls.append("interactions")
+        raise first_raises
+
+    def b(prompt, temperature):
+        calls.append("generate")
+        if isinstance(second_returns, Exception):
+            raise second_returns
+        return second_returns
+
+    gemini._call_interactions, gemini._call_generate = a, b
+    gemini._WORKING_ENDPOINT = ""
+    return calls
+
+
+_real = (gemini._call_interactions, gemini._call_generate)
+_calls = _endpoints(_rq.Timeout("slow"), "it worked")
+check("a timeout on one endpoint falls through to the other",
+      gemini.call_model("x") == "it worked" and _calls == ["interactions", "generate"])
+_endpoints(_rq.Timeout("slow"), _rq.Timeout("also slow"))
+try:
+    gemini.call_model("x")
+    check("both timing out raises", False)
+except RuntimeError as e:
+    check("both timing out gives one readable reason",
+          str(e) == "the AI did not answer in time")
+check("the ceiling leaves room for a slow answer", gemini.TIMEOUT >= 60)
+gemini._call_interactions, gemini._call_generate = _real
+
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")
 os.environ["DAILY_SEND_CAP"] = "2"
