@@ -767,12 +767,12 @@ check("repeated Re: prefixes are ignored",
       _rep.normalise_subject("Re: RE: Fwd: Security compliance")
       == "security compliance")
 _longer = db.get_company(db.insert_company(
-    run_id, "longer.test", "sent", email_subject="Security compliance EMR",
+    run_id, "longer.test", "sent", email_subject="Widget pricing EMR",
     sent_message_id=None))
 _shorter = db.get_company(db.insert_company(
-    run_id, "shorter.test", "sent", email_subject="Security compliance",
+    run_id, "shorter.test", "sent", email_subject="Widget pricing",
     sent_message_id=None))
-_msg = {"in_reply_to": "", "references": "", "subject": "Re: Security compliance EMR"}
+_msg = {"in_reply_to": "", "references": "", "subject": "Re: Widget pricing EMR"}
 check("a reply matches only the email it answers", _rep.matches(_longer, _msg))
 check("and not a company whose subject is a prefix of it",
       not _rep.matches(_shorter, _msg))
