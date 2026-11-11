@@ -17,7 +17,11 @@ from . import ai, config, db
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
 TIMEOUT = 30
-LOOKBACK = 200  # most recent messages to consider
+LOOKBACK = 200  # most recent messages per folder
+# A reply to cold outreach is exactly the kind of message a filter diverts, and a
+# reply sitting in Spam is still a reply. Only messages that match a sent email by
+# id or whole subject are ever used, so widening the search cannot pull in noise.
+FOLDERS = ("INBOX", '"[Gmail]/Spam"')
 
 NO_REPLY = "no_reply"
 INTERESTED = "interested"
@@ -84,24 +88,28 @@ def fetch_inbox():
     box = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, timeout=TIMEOUT)
     try:
         box.login(address, password)
-        box.select("INBOX", readonly=True)
-        typ, data = box.search(None, "ALL")
-        ids = (data[0].split() if data and data[0] else [])[-LOOKBACK:]
-        for num in reversed(ids):
-            typ, raw = box.fetch(num, "(RFC822)")
-            if not raw or not raw[0]:
+        for folder in FOLDERS:
+            typ, _ = box.select(folder, readonly=True)
+            if typ != "OK":
                 continue
-            message = email.message_from_bytes(raw[0][1])
-            out.append(
-                {
-                    "from": _header(message, "From"),
-                    "subject": _header(message, "Subject"),
-                    "date": _header(message, "Date"),
-                    "in_reply_to": message.get("In-Reply-To", ""),
-                    "references": message.get("References", ""),
-                    "body": plain_body(message),
-                }
-            )
+            typ, data = box.search(None, "ALL")
+            ids = (data[0].split() if data and data[0] else [])[-LOOKBACK:]
+            for num in reversed(ids):
+                typ, raw = box.fetch(num, "(RFC822)")
+                if not raw or not raw[0]:
+                    continue
+                message = email.message_from_bytes(raw[0][1])
+                out.append(
+                    {
+                        "folder": folder,
+                        "from": _header(message, "From"),
+                        "subject": _header(message, "Subject"),
+                        "date": _header(message, "Date"),
+                        "in_reply_to": message.get("In-Reply-To", ""),
+                        "references": message.get("References", ""),
+                        "body": plain_body(message),
+                    }
+                )
     finally:
         try:
             box.logout()
@@ -148,6 +156,7 @@ def check(company_ids=None):
         if reply is None or not reply["body"]:
             db.update_company(row["id"], reply_checked_at=now)
             results.append({"company_id": row["id"], "domain": row["domain"],
+                            "company_name": row["company_name"],
                             "reply_status": NO_REPLY, "quote": ""})
             continue
         verdict = ai.classify_reply(reply["body"])

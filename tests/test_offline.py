@@ -793,10 +793,16 @@ check("an interested reply is surfaced", len(_rep.interested(_out)) == 1)
 check("a classified company is no longer awaiting a reply",
       all(r["id"] != _co for r in db.sent_awaiting_reply()))
 
+check("spam is searched as well as the inbox",
+      any("Spam" in f for f in _rep.FOLDERS) and "INBOX" in _rep.FOLDERS)
+
 _co2 = db.insert_company(run_id, "quiet.test", "sent", email_subject="Nothing",
                          sent_message_id="<quiet@mail>")
 _rep.fetch_inbox = lambda: []
-_rep.check()
+_quiet = _rep.check()
+check("every result has the same keys whichever branch ran",
+      all({"company_id", "domain", "company_name", "reply_status", "quote"} <= set(r)
+          for r in _quiet))
 check("no matching message leaves it at no reply",
       (db.get_company(_co2)["reply_status"] or "no_reply") == "no_reply")
 check("but the check is timestamped", bool(db.get_company(_co2)["reply_checked_at"]))
