@@ -81,3 +81,48 @@ The draft shows the scraped contact (name, title, email) on the review card and 
 
 ## Decision 16
 Change prompt for Claude Code written to CLAUDE_CODE_CHANGE_PROMPT.md: interactive chip input (default option B: chips plus optional demo list, still to be confirmed by the user), per-domain /run-domain flow, Postgres via DATABASE_URL, passcode gate on the public page, Vercel config, tests. Stop points before any production deploy.
+
+## Decision 17 (approved)
+Discovery step added: clicking a vertical finds the companies, instead of loading a
+fixed list. The Growth Lead still owns the ICP rules and still approves the list
+before anything runs; what changes is that she no longer has to supply the names.
+
+Candidates come from Google News, not from Hunter Discover. Both were tested
+against the real key on 11 Nov 2026, and the difference is not marginal. Discover
+asked for healthtech SaaS returns Cerner, Athenahealth, Cipla, Dr. Reddy's and
+HDFC Life; its headcount filter is silently ignored on the free plan (identical
+results with and without it) and its structured industry filter is rejected
+outright. A funding-news query returns CARPL.ai (Series A, $10M), CURAPOD (INR 20
+Cr pre-Series A) and Pulse ($4M). Discover's index is biased towards large
+established companies; a funding feed is biased towards small recently funded ones,
+which is the ICP. Discover remains in the chain for the contact lookup only.
+
+Discovery window is 12 months. Funding older than that is a weak trigger.
+
+One query per vertical, written down here because it is a rule, not a detail:
+  healthtech  "healthtech" (raises OR "Series A" OR "Series B" OR funding) India
+  fintech     "fintech" (raises OR "Series A" OR "Series B" OR funding) India
+  cleantech   "cleantech" (raises OR "Series A" OR "Series B" OR funding) India
+India scope follows the accounts targeted so far; change it here if that changes.
+Code fetches and date-filters the feed. Flash only classifies each headline: does it
+name exactly one company, and which. A headline naming no single company (listicles,
+market reports, ecosystem pieces) is discarded.
+
+A headline gives a company name, and the pipeline needs a domain. Nothing may invent
+one: a guessed domain fails silently, researching the wrong company. Resolution is
+(1) the outbound links of the article that named the company, then (2) a
+search-grounded lookup whose citation is the source, and in both cases (3) a check
+that the company name actually appears on that homepage before the domain is
+accepted. A name that will not resolve becomes a greyed chip reading "no domain
+found", visible and typeable over, never silently dropped.
+
+Discovery spends nothing: Hunter Discover queries cost no searches and no credits
+(verified, quota unchanged across every test), and Google News RSS is free.
+
+Expected yield is 4 to 6 usable candidates per click out of about 15 headlines, so
+this fills a weekly list rather than a daily one. The 15-domain run cap is not the
+binding constraint; at roughly 90 seconds per company, patience is.
+
+Unchanged: everything after the chips. The hard filters, ranking, contact choice,
+drafting and the human approval all run exactly as they do today on a typed domain.
+Components map needs a v9 redraw with the discovery box in front of step 1.
