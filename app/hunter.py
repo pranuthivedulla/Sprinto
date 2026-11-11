@@ -1,4 +1,6 @@
 """Hunter.io Domain Search. One search per domain, ever - the cache is checked first."""
+import re
+
 import requests
 
 from . import config, db
@@ -89,6 +91,16 @@ def people(data):
     return out
 
 
+def title_matches(title, keyword):
+    """Whole-word match only.
+
+    Substring matching put every "Director of ..." into the engineering tier,
+    because "cto" is inside "director". The card then explained a marketing hire
+    as an engineering leader.
+    """
+    return re.search(r"\b" + re.escape(keyword) + r"\b", title or "", re.I) is not None
+
+
 def choose(data):
     """Pick one person by title order. Returns (person|None, reason)."""
     candidates = people(data)
@@ -96,8 +108,7 @@ def choose(data):
         return None, "Hunter returned no record with a name, a title and an email."
     for tier_name, keywords in TITLE_TIERS:
         for person in candidates:
-            lowered = person["title"].lower()
-            if any(k in lowered for k in keywords):
+            if any(title_matches(person["title"], k) for k in keywords):
                 person["title_tier"] = tier_name
                 return person, (
                     f"Title order: {tier_name.replace('_', ' ')} is the highest tier "

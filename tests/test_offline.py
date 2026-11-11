@@ -285,6 +285,7 @@ ai.draft_email = lambda person, company, hook, pains: (
     "evidence collection and stall on questionnaires. Worth 15 minutes?")
 news.fetch = lambda company, domain, force=False: ([], "api")
 _REAL_HUNTER_SEARCH = hunter.search
+_REAL_HUNTER_CHOOSE = hunter.choose
 hunter.search = lambda domain, force=False: (HUNTER, "api")
 
 run_id = db.create_run(1)
@@ -645,6 +646,45 @@ except RuntimeError as e:
     check("and that reaches the reviewer in plain words",
           "limited to 10" in pipeline.plain_reason(e))
 _rq2.get = _real_get
+
+
+# --- title matching is whole-word, and a draft is never wiped ----------------
+print("title matching")
+
+
+def _tier(title):
+    person, _ = hunter.choose({"data": {"emails": [
+        {"first_name": "X", "last_name": "Y", "position": title, "value": "x@y.com"}]}})
+    return person["title_tier"]
+
+
+hunter.choose = _REAL_HUNTER_CHOOSE
+check("a product director is not an engineering leader",
+      _tier("Director of Product Management") == "other")
+check("nor is a marketing director",
+      _tier("Director of Marketing") == "other")
+check("an engineering director still is", _tier("Director of Engineering") == "engineering")
+check("so does a plain CTO", _tier("CTO") == "engineering")
+check("security titles still win", _tier("Head of Security") == "security_or_grc")
+check("GRC counts as security", _tier("GRC Manager") == "security_or_grc")
+check("founders are still found", _tier("Co-Founder and CEO") == "founder_or_ceo")
+check("a security lead outranks a founder", hunter.choose({"data": {"emails": [
+    {"first_name": "A", "last_name": "B", "position": "Founder", "value": "a@b.com"},
+    {"first_name": "C", "last_name": "D", "position": "CISO", "value": "c@d.com"},
+]}})[0]["email"] == "c@d.com")
+
+print("drafts are not wiped")
+_draft = db.insert_company(run_id, "draft.test", "queued", company_name="Draft Test",
+                           email_subject="Real subject", email_body="The generated body.")
+_in.post("/save", data={"company_id": _draft, "subject": "", "body": ""})
+_after = db.get_company(_draft)
+check("an empty body does not replace the draft",
+      _after["email_body"] == "The generated body.")
+check("nor does an empty subject", _after["email_subject"] == "Real subject")
+_in.post("/save", data={"company_id": _draft, "subject": "Edited", "body": "My edit."})
+_after = db.get_company(_draft)
+check("a real edit is still saved",
+      _after["email_body"] == "My edit." and _after["email_subject"] == "Edited")
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")

@@ -243,8 +243,14 @@ def save(request: Request, passcode: str = Form(""), company_id: int = Form(...)
          subject: str = Form(""), body: str = Form("")):
     if not auth.authorized(request, passcode):
         return _back(error="Wrong passcode.")
-    db.update_company(company_id, email_subject=subject.strip(), email_body=body.strip(),
-                      reviewer_action="edited")
+    stored = db.get_company(company_id)
+    # An empty field means "not supplied", never "replace the draft with nothing".
+    db.update_company(
+        company_id,
+        email_subject=subject.strip() or (stored["email_subject"] if stored else ""),
+        email_body=body.strip() or (stored["email_body"] if stored else ""),
+        reviewer_action="edited",
+    )
     db.log("edited", "", company_id)
     return _back(message="Edit saved. Nothing has been sent.")
 
@@ -276,7 +282,8 @@ def approve(request: Request, passcode: str = Form(""), company_id: int = Form(.
     if missing:
         return _back(error=f"Cannot send, not set in .env: {', '.join(missing)}")
 
-    subject, body = subject.strip(), body.strip()
+    subject = subject.strip() or (row["email_subject"] or "")
+    body = body.strip() or (row["email_body"] or "")
     db.update_company(company_id, email_subject=subject, email_body=body)
     try:
         sent_at = mailer.send(company_id, subject, body)
