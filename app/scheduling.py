@@ -8,6 +8,7 @@ Every message Sequence 2 sends, including the calendar invite, is delivered to
 TO_EMAIL. The invite is the one artefact that could otherwise reach the contact,
 so it is redirected as firmly as the email is.
 """
+import re
 from datetime import datetime, timedelta
 
 from . import ai, config, db, gemini, mailer
@@ -63,13 +64,12 @@ Their reply:
 
 {rules}
 
-confirmed      they accept one of the proposed times. Say which, copied exactly
-               from the list above.
+confirmed      they accept one of the proposed times
 counter        they want to meet but at a different time, or ask for other options
 neither        they say nothing about scheduling either way
 
 Return: {{"outcome": "confirmed|counter|neither",
-          "slot": "the exact proposed time they accepted, or empty",
+          "slot_number": the number of the time they accepted, or 0,
           "quote": "the sentence you based that on, copied exactly"}}"""
 
 
@@ -84,13 +84,33 @@ def read_scheduling_reply(body, slots):
     outcome = str(data.get("outcome", "")).strip().lower()
     if outcome not in ("confirmed", "counter", "neither"):
         outcome = "neither"
-    slot = str(data.get("slot", "")).strip()
-    # Code decides, not the model: an accepted slot has to be one we actually offered.
-    if slot not in slots:
-        slot = ""
+    # The model picks which of the numbered times was accepted; code turns that
+    # into the slot. Asking it to echo "2026-11-12 14:30" exactly failed on a plain
+    # "14:30 works for me for 12th" and sent a real acceptance round the loop again.
+    slot = _resolve_slot(data, slots)
     if outcome == "confirmed" and not slot:
         outcome = "counter"
     return {"outcome": outcome, "slot": slot, "quote": str(data.get("quote", "")).strip()}
+
+
+def _resolve_slot(data, slots):
+    """Map the model's answer onto a slot we actually offered, or nothing."""
+    try:
+        index = int(data.get("slot_number") or 0)
+    except (TypeError, ValueError):
+        index = 0
+    if 1 <= index <= len(slots):
+        return slots[index - 1]
+    # Fall back to the text, exact first, then on the digits it contains.
+    text = str(data.get("slot", "")).strip()
+    if text in slots:
+        return text
+    digits = re.sub(r"\D", "", text)
+    if digits:
+        for slot in slots:
+            if re.sub(r"\D", "", slot) == digits:
+                return slot
+    return ""
 
 
 # --- the two things Sequence 2 sends ----------------------------------------

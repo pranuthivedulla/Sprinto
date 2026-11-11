@@ -898,6 +898,23 @@ gemini.call_json = lambda prompt, temperature=0.1: {
     "outcome": "confirmed", "slot": "2026-01-01 10:00", "quote": "that works"}
 check("a time we did offer is accepted",
       _sch.read_scheduling_reply("sure", ["2026-01-01 10:00"])["outcome"] == "confirmed")
+_three = ["2026-11-12 14:00", "2026-11-12 14:30", "2026-11-12 15:00"]
+check("the model picks a number and code resolves the slot",
+      _sch._resolve_slot({"slot_number": 2}, _three) == "2026-11-12 14:30")
+check("an exact time still resolves",
+      _sch._resolve_slot({"slot": "2026-11-12 15:00"}, _three) == "2026-11-12 15:00")
+check("a number we never offered resolves to nothing",
+      _sch._resolve_slot({"slot_number": 9}, _three) == "")
+check("an invented time resolves to nothing",
+      _sch._resolve_slot({"slot": "2099-01-01 09:00"}, _three) == "")
+check("the times are numbered in the prompt so it can refer to one",
+      "1. " in _sch.SCHEDULING_PROMPT.format(slots="1. a", body="b", rules="c")
+      or "{i}" in _sch.SCHEDULING_PROMPT)
+gemini.call_json = lambda prompt, temperature=0.1: {
+    "outcome": "confirmed", "slot_number": 2, "quote": "14:30 works"}
+check("a numbered confirmation books the right time",
+      _sch.read_scheduling_reply("14:30 works for me", _three)["slot"]
+      == "2026-11-12 14:30")
 gemini.call_json = lambda prompt, temperature=0.1: {"outcome": "nonsense", "slot": "", "quote": ""}
 check("an unrecognised outcome falls back to neither",
       _sch.read_scheduling_reply("x", ["2026-01-01 10:00"])["outcome"] == "neither")
