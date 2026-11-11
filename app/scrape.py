@@ -41,7 +41,9 @@ PAGE_PATHS = {
     "pricing": ["/pricing", "/plans", "/pricing/"],
     "about": ["/about", "/about-us", "/company", "/about/"],
     "careers": ["/careers", "/jobs", "/careers/", "/company/careers"],
-    "trust": ["/trust", "/security", "/trust-center", "/compliance", "/security/"],
+    # Evidence map row 5 budgets two fetches here. The homepage-link fallback below
+    # still finds a trust page at any other path, as it does for /company/security.
+    "trust": ["/trust", "/security"],
     "customers": ["/customers", "/case-studies", "/clients", "/customers/"],
 }
 

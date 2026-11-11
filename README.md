@@ -168,7 +168,10 @@ blocked. If it does fail, stop rather than switching to the Gmail API.
 ## Testing
 
 `python -m tests.test_offline` stubs every external call, so it needs no keys and
-spends nothing. It covers the filters, ranking, the email code check, the chip
+spends nothing. It ignores `DATABASE_URL` and uses a temporary SQLite file, because
+the tests write runs, companies and send_log rows, and a send_log row counts against
+the real daily cap. Pass `--use-database-url` to aim them at the real database on
+purpose; the rows it writes stay there. It covers the filters, ranking, the email code check, the chip
 cleaning, the passcode gate and throttle, the `/run-domain` endpoint, the demo
 redirect, and the SQL both database engines generate.
 

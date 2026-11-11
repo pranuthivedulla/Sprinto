@@ -10,12 +10,29 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from app import config
 
 # Point the database at a throwaway file before anything opens it.
 config.DATA_DIR = Path(tempfile.mkdtemp(prefix="sprinto-test-"))
 config.DB_PATH = config.DATA_DIR / "test.db"
+
+# These tests write runs, companies and send_log rows. A send_log row counts against
+# the real daily cap, so a stray DATABASE_URL must not quietly point them at the
+# deployed database. Pass --use-database-url to aim them there on purpose.
+USE_REAL_DB = "--use-database-url" in sys.argv
+config.load_env()
+if USE_REAL_DB:
+    # Host only. The connection string carries a password.
+    _host = urlsplit(os.environ.get("DATABASE_URL", "")).hostname or "?"
+    print(f"WRITING TO THE REAL DATABASE at {_host}")
+    print("rows this run creates will stay there unless you remove them")
+    print()
+elif os.environ.pop("DATABASE_URL", None):
+    print("DATABASE_URL ignored; using a temporary SQLite file.")
+    print("pass --use-database-url to run against the real database instead")
+    print()
 
 from app import ai, clean, db, hunter, mailer, news, pipeline, qualify, scrape  # noqa: E402
 
