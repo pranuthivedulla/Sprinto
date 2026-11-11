@@ -47,6 +47,15 @@ CREATE TABLE IF NOT EXISTS companies (
     reply_status TEXT,
     reply_quote TEXT,
     reply_checked_at TEXT,
+    thread_id TEXT,
+    calendar_checked TEXT,
+    times_proposed INTEGER,
+    reply_round INTEGER,
+    meeting_status TEXT,
+    meeting_time TEXT,
+    crm_logged TEXT,
+    proposed_at TEXT,
+    proposed_slots_json TEXT,
     created_at TEXT NOT NULL,
     sent_at TEXT
 );
@@ -120,6 +129,14 @@ def _upsert(conn, table, keys, cols, vals):
     else:
         sql = f"INSERT OR REPLACE INTO {table} ({names}) VALUES ({marks})"
     conn.execute(_q(sql), vals)
+
+
+def loads_list(raw):
+    try:
+        value = json.loads(raw) if raw else []
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return value if isinstance(value, list) else []
 
 
 def utcnow():
@@ -354,9 +371,27 @@ def sent_awaiting_reply():
     """Companies whose email went out and whose reply we have not classified yet."""
     with connect() as conn:
         return conn.execute(
-            _q("SELECT * FROM companies WHERE status='sent'"
+            _q("SELECT * FROM companies WHERE status='sent' AND thread_id IS NULL"
                " AND (reply_status IS NULL OR reply_status='no_reply')"
                " ORDER BY id")
+        ).fetchall()
+
+
+def scheduling_awaiting_reply():
+    """Companies whose scheduling graph is paused waiting on a reply."""
+    with connect() as conn:
+        return conn.execute(
+            _q("SELECT * FROM companies WHERE thread_id IS NOT NULL"
+               " AND meeting_status='awaiting_reply' ORDER BY id")
+        ).fetchall()
+
+
+def interested_not_scheduling():
+    """Interested replies that no scheduling run has picked up yet."""
+    with connect() as conn:
+        return conn.execute(
+            _q("SELECT * FROM companies WHERE reply_status='interested'"
+               " AND thread_id IS NULL ORDER BY id")
         ).fetchall()
 
 
@@ -374,7 +409,7 @@ def sent_rows(limit=50):
         return conn.execute(
             _q("SELECT s.sent_at, s.to_address, c.id AS company_id, c.domain,"
                " c.company_name, c.email_subject, c.reply_status, c.reply_quote,"
-               " c.reply_checked_at"
+               " c.reply_checked_at, c.meeting_status, c.meeting_time"
                " FROM send_log s LEFT JOIN companies c ON c.id = s.company_id"
                " ORDER BY s.id DESC LIMIT ?"),
             (limit,),

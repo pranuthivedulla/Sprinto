@@ -70,6 +70,15 @@ MAX_DOMAINS_PER_RUN = 15   # one run of the chip input; not the daily send cap
 # call then had nothing left, so a real company came back as "retry".
 DOMAIN_TIME_BUDGET = 240   # seconds of wall clock for a single domain
 DEMO_DOMAINS_FILE = "demo_domains.txt"
+
+# Sequence 2. Stated availability rather than a real calendar: no OAuth, and the
+# booked meeting is still real inside this app.
+WORKING_DAYS = (0, 1, 2, 3, 4)        # Monday to Friday
+WORKING_HOURS = (10, 17)              # 10:00 to 17:00 India time
+SLOT_MINUTES = 30
+SLOTS_TO_PROPOSE = 3
+MAX_REPLY_ROUNDS = 2                  # then escalate
+REPLY_DEADLINE_HOURS = 48             # silence for this long escalates
 SESSION_MAX_AGE = 12 * 60 * 60   # how long one passcode entry lasts
 LOGIN_MAX_FAILURES = 5           # per window, per IP
 LOGIN_WINDOW_SECONDS = 10 * 60

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import auth, clean, config, db, mailer, pipeline, replies
+from . import auth, clean, config, db, mailer, pipeline, replies, sequence2
 
 app = FastAPI(title="Sprinto cold outreach")
 templates = Jinja2Templates(directory=str(config.ROOT / "app" / "templates"))
@@ -135,6 +135,11 @@ def _page_context(request, message="", error=""):
         "message": message,
         "error": error,
         "demo_domains": demo_domains(),
+        "to_schedule": [
+            {"id": r["id"], "name": r["company_name"] or r["domain"],
+             "quote": r["reply_quote"] or ""}
+            for r in db.interested_not_scheduling()
+        ],
         "run_id": run_id,
         "review": review,
         "drops": drops,
@@ -151,6 +156,8 @@ def _page_context(request, message="", error=""):
                 "reply_status": r["reply_status"] or "no_reply",
                 "reply_quote": r["reply_quote"] or "",
                 "checked": mailer.to_ist(r["reply_checked_at"]),
+                "meeting_status": r["meeting_status"] or "",
+                "meeting_time": r["meeting_time"] or "",
             }
             for r in db.sent_rows()
         ],
@@ -241,6 +248,20 @@ def run_domain(request: Request, passcode: str = Form(""),
     return JSONResponse({"run_id": rid, **result})
 
 
+def _advance_scheduling():
+    """Resume any paused scheduling graph whose reply has arrived."""
+    waiting = db.scheduling_awaiting_reply()
+    if not waiting:
+        return []
+    inbox = replies.fetch_inbox()
+    notes = []
+    for row in waiting:
+        message = next((m for m in inbox if replies.matches(row, m)), None)
+        state = sequence2.resume(row["id"], (message or {}).get("body", ""))
+        notes.append(f"{row['company_name'] or row['domain']}: {state.get('note', '')}")
+    return notes
+
+
 @app.post("/check-replies")
 def check_replies(request: Request, passcode: str = Form("")):
     """Sequence 1: look at what came back and set reply_status. Nothing else.
@@ -251,8 +272,11 @@ def check_replies(request: Request, passcode: str = Form("")):
         return _back(error="Wrong passcode.")
     try:
         results = replies.check()
+        scheduled = _advance_scheduling()
     except Exception as exc:
         return _back(error=f"Could not read the inbox: {exc}")
+    if scheduled:
+        return _back(message="Scheduling: " + "; ".join(scheduled))
     if not results:
         return _back(message="No sent emails are waiting on a reply.")
     keen = replies.interested(results)
@@ -265,6 +289,23 @@ def check_replies(request: Request, passcode: str = Form("")):
         counts[r["reply_status"]] = counts.get(r["reply_status"], 0) + 1
     summary = ", ".join(f"{n} {s.replace('_', ' ')}" for s, n in sorted(counts.items()))
     return _back(message=f"Checked {len(results)}: {summary}.")
+
+
+@app.post("/start-scheduling")
+def start_scheduling(request: Request, company_id: int = Form(...), passcode: str = Form("")):
+    """Sequence 2: run check_calendar and propose_time, then pause for a reply."""
+    if not auth.authorized(request, passcode):
+        return _back(error="Wrong passcode.")
+    row = db.get_company(company_id)
+    if row is None or row["reply_status"] != "interested":
+        return _back(error="Scheduling only starts from an interested reply.")
+    if row["thread_id"]:
+        return _back(error="Scheduling is already running for that company.")
+    try:
+        state = sequence2.start(company_id)
+    except Exception as exc:
+        return _back(error=f"Scheduling could not start: {exc}")
+    return _back(message=f"{row['company_name'] or row['domain']}: {state.get('note', 'started')}.")
 
 
 @app.post("/save")

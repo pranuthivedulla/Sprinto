@@ -1,4 +1,4 @@
-# Pinned to the versions these 121 checks actually pass against. Unpinned, Vercel
+# Pinned to the versions these 190 checks actually pass against. Unpinned, Vercel
 # installs whatever is newest, which is not what was tested here.
 fastapi==0.162.0
 uvicorn==0.54.0
@@ -7,3 +7,7 @@ python-multipart==0.0.33
 requests==2.34.2
 # only needed when DATABASE_URL is set (Postgres); SQLite is built in
 psycopg[binary]==3.3.8
+# Sequence 2: the scheduling agent and its durable checkpointing
+langgraph==1.2.20
+langgraph-checkpoint-postgres==3.2.0
+

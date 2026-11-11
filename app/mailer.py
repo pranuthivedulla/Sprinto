@@ -81,6 +81,10 @@ def send(company_id, subject, body):
         smtp.send_message(message)
 
     sent_at = db.record_send(company_id, to_address)
-    db.update_company(company_id, sent_message_id=msg_id, reply_status="no_reply")
+    existing = db.get_company(company_id)
+    fields = {"sent_message_id": msg_id}
+    if existing is None or existing["reply_status"] is None:
+        fields["reply_status"] = "no_reply"
+    db.update_company(company_id, **fields)
     db.log("sent", f"to={to_address}", company_id)
     return sent_at

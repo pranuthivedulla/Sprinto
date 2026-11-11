@@ -317,6 +317,24 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </table>
 </div>
 
+{% if to_schedule %}
+<h2>Interested ({{ to_schedule|length }})</h2>
+<div class="box">
+  <p class="muted" style="margin:0 0 10px">Sequence 1 stopped here. Starting scheduling
+    checks the calendar and sends two or three times, then waits for a reply.</p>
+  {% for c in to_schedule %}
+  <div class="row" style="padding:7px 0; border-top:1px solid var(--line)">
+    <strong style="min-width:12em">{{ c.name }}</strong>
+    <span class="quote" style="flex:1">{{ c.quote }}</span>
+    <form method="post" action="/start-scheduling">
+      <input type="hidden" name="company_id" value="{{ c.id }}">
+      <button class="primary" type="submit">Start scheduling</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <h2>Sent</h2>
 <div class="box">
   <div class="row" style="margin-bottom:12px">
@@ -336,6 +354,13 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
       {% elif s.reply_status == 'not_interested' %}<span class="muted">not interested</span>
       {% else %}<span class="muted">no reply{% if s.checked %}, checked {{ s.checked }}{% endif %}</span>{% endif %}
       {% if s.reply_quote %}<div class="quote">{{ s.reply_quote }}</div>{% endif %}
+      {% if s.meeting_status == 'booked' %}
+        <div><span class="tier Medium">meeting {{ s.meeting_time }}</span></div>
+      {% elif s.meeting_status == 'awaiting_reply' %}
+        <div class="muted">times proposed, waiting</div>
+      {% elif s.meeting_status == 'escalated' %}
+        <div><span class="tier Low">handed to you</span></div>
+      {% endif %}
     </td>
   </tr>
   {% endfor %}

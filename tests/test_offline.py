@@ -10,6 +10,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from datetime import datetime as _dt, timezone as _tz
 from urllib.parse import urlsplit
 
 from app import config
@@ -811,6 +812,94 @@ check("checking replies refuses a stranger",
       TestClient(main.app).post("/check-replies",
                                 follow_redirects=False).headers["location"].endswith(
           "error=Wrong+passcode."))
+
+
+# --- Sequence 2: schedule the call -------------------------------------------
+print("scheduling graph")
+from datetime import timedelta as _td  # noqa: E402
+from app import scheduling as _sch, sequence2 as _s2  # noqa: E402
+
+_real_send = mailer.send
+_REAL_READ_REPLY = _sch.read_scheduling_reply
+_sent2 = []
+mailer.send = lambda cid, subject, body: _sent2.append((cid, subject, body)) or "now"
+
+with _s2.runner() as _g:
+    _nodes = {n for n in _g.get_graph().nodes if not n.startswith("__")}
+check("the graph has the brief's four nodes",
+      {"check_calendar", "propose_time", "handle_reply", "escalate"} <= _nodes)
+check("plus book_meeting, which its edges require", "book_meeting" in _nodes)
+
+check("a proposed slot falls on a working day and hour",
+      all(_dt.strptime(s, "%Y-%m-%d %H:%M").weekday() in config.WORKING_DAYS
+          and config.WORKING_HOURS[0] <= _dt.strptime(s, "%Y-%m-%d %H:%M").hour
+          < config.WORKING_HOURS[1]
+          for s in _sch.free_slots()))
+check("the number of slots offered is the configured one",
+      len(_sch.free_slots()) == config.SLOTS_TO_PROPOSE)
+
+def _fresh(domain):
+    return db.insert_company(run_id, domain, "sent", company_name=domain,
+                             poc_name="Riya Menon", poc_email="riya@" + domain,
+                             reply_status="interested")
+
+_c1 = _fresh("confirm.test")
+_s2.start(_c1)
+with _s2.runner() as _g:
+    check("after proposing, the graph pauses before handle_reply",
+          _g.get_state(_s2.thread_for(_c1)).next == ("handle_reply",))
+check("times were proposed once", db.get_company(_c1)["times_proposed"] == 1)
+check("the calendar was checked", db.get_company(_c1)["calendar_checked"] == "yes")
+
+_slots = db.loads_list(db.get_company(_c1)["proposed_slots_json"])
+_sch.read_scheduling_reply = lambda b, s: {"outcome": "confirmed", "slot": s[0], "quote": "q"}
+_out = _s2.resume(_c1, "The first one works")
+check("a confirmation books the meeting", db.get_company(_c1)["meeting_status"] == "booked")
+check("the booked time is one we offered", db.get_company(_c1)["meeting_time"] in _slots)
+check("the CRM field is written", db.get_company(_c1)["crm_logged"] == "yes")
+check("the run is finished", _out.get("finished") is True)
+check("the invite went to TO_EMAIL, never the contact",
+      "Meeting booked" in _sent2[-1][1])
+
+_c2 = _fresh("counter.test")
+_s2.start(_c2)
+_sch.read_scheduling_reply = lambda b, s: {"outcome": "counter", "slot": "", "quote": "q"}
+_s2.resume(_c2, "None of those work")
+_r2 = db.get_company(_c2)
+check("a counter-proposal increments the round", _r2["reply_round"] == 1)
+check("and proposes times again", _r2["times_proposed"] == 2)
+_s2.resume(_c2, "Still no good")
+check("the second round hands off", db.get_company(_c2)["meeting_status"] == "escalated")
+
+_c3 = _fresh("silent.test")
+_s2.start(_c3)
+_quiet = _s2.resume(_c3, "")
+check("silence before the deadline keeps waiting",
+      db.get_company(_c3)["meeting_status"] == "awaiting_reply"
+      and _quiet.get("finished") is False)
+db.update_company(_c3, proposed_at=(
+    _dt.now(_tz.utc) - _td(hours=config.REPLY_DEADLINE_HOURS + 1)
+).strftime("%Y-%m-%d %H:%M:%S"))
+_s2.resume(_c3, "")
+check("silence past the deadline hands off",
+      db.get_company(_c3)["meeting_status"] == "escalated")
+
+# The real function, with only the model stubbed: code decides whether the slot
+# the model returned is one we actually offered.
+_sch.read_scheduling_reply = _REAL_READ_REPLY
+gemini.call_json = lambda prompt, temperature=0.1: {
+    "outcome": "confirmed", "slot": "2099-01-01 09:00", "quote": "that works"}
+_verdict = _sch.read_scheduling_reply("sure", ["2026-01-01 10:00"])
+check("a time the model invented is not accepted as confirmed",
+      _verdict["outcome"] == "counter" and _verdict["slot"] == "")
+gemini.call_json = lambda prompt, temperature=0.1: {
+    "outcome": "confirmed", "slot": "2026-01-01 10:00", "quote": "that works"}
+check("a time we did offer is accepted",
+      _sch.read_scheduling_reply("sure", ["2026-01-01 10:00"])["outcome"] == "confirmed")
+gemini.call_json = lambda prompt, temperature=0.1: {"outcome": "nonsense", "slot": "", "quote": ""}
+check("an unrecognised outcome falls back to neither",
+      _sch.read_scheduling_reply("x", ["2026-01-01 10:00"])["outcome"] == "neither")
+mailer.send = _real_send
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")
