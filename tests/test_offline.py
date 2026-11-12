@@ -849,6 +849,8 @@ with _s2.runner() as _g:
     check("after proposing, the graph pauses before handle_reply",
           _g.get_state(_s2.thread_for(_c1)).next == ("handle_reply",))
 check("times were proposed once", db.get_company(_c1)["times_proposed"] == 1)
+check("Sequence 1's verdict survives Sequence 2 starting",
+      db.get_company(_c1)["reply_status"] == "interested")
 check("the calendar was checked", db.get_company(_c1)["calendar_checked"] == "yes")
 
 _slots = db.loads_list(db.get_company(_c1)["proposed_slots_json"])

@@ -254,3 +254,52 @@ needs recording if taken; the redirect to TO_EMAIL makes that safer than it soun
 but a calendar invite naming the real contact would reach them, so any invite must
 be redirected too. And whether free slots come from a stated availability or from a
 real calendar through OAuth.
+
+## Decision 21 (approved)
+Sequence 2 is built, on LangGraph, as the workflow draws it: five nodes sharing one
+state object. check_calendar offers free slots from stated working hours minus what
+is already booked, propose_time sends two or three of them, and the graph pauses
+with its state checkpointed in Postgres. A confirmation books the meeting and
+writes the CRM fields, a counter-proposal increments reply_round and goes back to
+check_calendar, and a second round or silence past 48 hours escalates to the Growth
+Lead. The brief names four nodes but wires an edge to book_meeting and leaves
+crm_logged unset, so book_meeting is a fifth node and sets it.
+
+This overrides Decision 2. propose_time and book_meeting send without anyone
+approving them. It is acceptable here only because every outbound message is
+redirected to TO_EMAIL, and the hard rule that makes that true is: the calendar
+invite is redirected too. An invite naming the real contact is the one artefact in
+this build that could reach a stranger. Verified in the sending account's mailbox:
+the invite went to TO_EMAIL alone and states twice that it was not delivered to the
+contact.
+
+Nothing polls. A serverless deployment has no scheduler, so the reviewer's Check
+replies action is what resumes a paused graph. The 48-hour deadline is a stored
+timestamp compared at check time, not a timer.
+
+Code decides which time was accepted. The model is given numbered options and
+returns a number; code maps it to a slot and refuses anything outside the list.
+Asking the model to echo "2026-11-13 14:00" exactly turned a plain "14:30 works for
+me for 12th" into a counter-proposal and sent a real acceptance round the loop
+again.
+
+Verified live on 12 Nov 2026: three times offered for Friday 13th, the graph
+paused, the reply "14:00 for 13th works for me" read from the mailbox, meeting
+booked for 2026-11-13 14:00, invite sent, crm_logged written, run finished in one
+round.
+
+Four bugs only running it could find:
+- The in-memory checkpointer was rebuilt per call, so the pause was lost before
+  anything could resume it.
+- Silence inside the deadline escalated, because the conditional edge fell through
+  to escalate for anything that was not a confirmation or a counter.
+- A company could not be scheduled twice: thread ids were derived from the company
+  id and a finished graph blocked any new run. Each run now has its own thread.
+- propose_time wrote reply_status no_reply, destroying the interested verdict that
+  qualified the company for scheduling in the first place. Sequence 2 now keeps its
+  progress in meeting_status and leaves Sequence 1's verdict alone.
+
+Known and not fixed: reply_quote is reused the same way reply_status was, so the
+sentence that showed interest is replaced by the sentence that picked a time. The
+calendar is stated availability rather than a real one. Escalation sets a status;
+it does not notify anyone.

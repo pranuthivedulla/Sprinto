@@ -59,8 +59,11 @@ def propose_time(state: State) -> State:
     slots = state.get("slots") or scheduling.free_slots()
     scheduling.send_times(company, slots)
     count = (state.get("times_proposed") or 0) + 1
+    # reply_status stays as Sequence 1 left it. Sequence 2 keeps its own progress in
+    # meeting_status; writing no_reply here destroyed the interested verdict that
+    # qualified the company, and with it the record of why scheduling ever started.
     _store(state, times_proposed=count, proposed_at=db.utcnow(),
-           meeting_status="awaiting_reply", reply_status="no_reply")
+           meeting_status="awaiting_reply")
     db.log("proposed_times", ", ".join(slots), state["company_id"])
     return {"times_proposed": count, "meeting_status": "awaiting_reply",
             "note": "times sent, waiting for a reply"}
@@ -174,13 +177,22 @@ def runner():
 
 
 def thread_for(company_id):
-    return {"configurable": {"thread_id": f"company-{company_id}"}}
+    """The checkpoint thread this company's current run lives on.
+
+    Stored rather than derived, so a company can be scheduled more than once: a
+    finished graph cannot be restarted on the same thread.
+    """
+    company = db.get_company(company_id)
+    thread = (company["thread_id"] if company else None) or f"company-{company_id}"
+    return {"configurable": {"thread_id": thread}}
 
 
 def start(company_id):
     """Run from check_calendar until the pause after propose_time."""
-    db.update_company(company_id, thread_id=f"company-{company_id}", reply_round=0,
-                      times_proposed=0, crm_logged="no")
+    thread = f"company-{company_id}-{db.utcnow().replace(' ', 'T')}"
+    db.update_company(company_id, thread_id=thread, reply_round=0, times_proposed=0,
+                      crm_logged="no", meeting_status=None, meeting_time=None,
+                      proposed_at=None)
     with runner() as graph:
         state = graph.invoke({"company_id": company_id, "reply_round": 0,
                               "times_proposed": 0}, thread_for(company_id))
