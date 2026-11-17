@@ -151,9 +151,16 @@ Return a JSON array, one object per headline, in the same order:
 [{{"index": 0, "category": "...", "names_this_company": true|false}}]"""
 
 
+MAX_HEADLINES_PER_CALL = 10
+
+
 def classify_headlines(company, domain, headlines):
     if not headlines:
         return []
+    # A funding announcement is syndicated a dozen times and the first few carry
+    # the signal. Sending twenty timed the model out, which loses every signal
+    # rather than just the duplicates.
+    headlines = headlines[:MAX_HEADLINES_PER_CALL]
     items = "\n".join(
         f"{i}. {h['title']} ({h.get('published', '')})" for i, h in enumerate(headlines)
     )

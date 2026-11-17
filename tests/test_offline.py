@@ -40,8 +40,25 @@ from app import ai, clean, db, hunter, mailer, news, pipeline, qualify, scrape  
 PASS, FAIL = 0, 0
 
 
+def guard(fn):
+    """Evaluate a check expression, returning the exception instead of raising."""
+    try:
+        return fn()
+    except Exception as exc:
+        return exc
+
+
 def check(label, condition):
+    """A check that raises is a failure, not the end of the run.
+
+    An AttributeError in one check used to kill the process and hide every check
+    after it, which reads as a shorter green run rather than a broken one.
+    """
     global PASS, FAIL
+    if isinstance(condition, Exception):
+        FAIL += 1
+        print(f"  FAIL {label} ({type(condition).__name__}: {condition})")
+        return
     if condition:
         PASS += 1
         print(f"  ok   {label}")
@@ -921,6 +938,22 @@ gemini.call_json = lambda prompt, temperature=0.1: {"outcome": "nonsense", "slot
 check("an unrecognised outcome falls back to neither",
       _sch.read_scheduling_reply("x", ["2026-01-01 10:00"])["outcome"] == "neither")
 mailer.send = _real_send
+
+
+# --- the news query has to be satisfiable ------------------------------------
+print("news query")
+import re as _re  # noqa: E402
+
+_q = news.build_query("HealthPlix", "healthplix.com")
+_group = _q[_q.index("(") + 1:_q.rindex(")")]
+_terms = [x.strip() for x in _group.split(" OR ")]
+_unquoted_multiword = [x for x in _terms if " " in x and not x.startswith('"')]
+check("every multi-word term in the query is quoted", _unquoted_multiword == [])
+check("the company name is quoted", _q.startswith('"HealthPlix"'))
+check("the compliance terms survive",
+      '"SOC 2"' in _q and '"ISO 27001"' in _q and '"security breach"' in _q)
+check("only a handful of headlines go to the classifier",
+      guard(lambda: ai.MAX_HEADLINES_PER_CALL <= 12))
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")

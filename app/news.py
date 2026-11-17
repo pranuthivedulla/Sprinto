@@ -13,7 +13,15 @@ FEED = "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 TIMEOUT = 12
 LOOKBACK_DAYS = 730          # "last 2 years" for the single query
 NEGATIVE_WINDOW_DAYS = 365   # row 7 counts only within 12 months
-KEYWORDS = "funding OR raises OR \"Series A\" OR \"Series B\" OR SOC 2 OR ISO 27001 OR compliance OR security breach"
+# Every multi-word term must stay quoted. Unquoted, Google News splits
+# "security breach" into two tokens and ANDs them into the OR group, which
+# made the whole query unsatisfiable: this returned 0 headlines for every
+# company ever researched, so no intent signal was ever found and every
+# company came out Low.
+KEYWORDS = (
+    'funding OR raises OR "Series A" OR "Series B" OR "SOC 2"'
+    ' OR "ISO 27001" OR compliance OR "security breach"'
+)
 
 
 def build_query(company_name, domain):
