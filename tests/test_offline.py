@@ -37,6 +37,20 @@ elif os.environ.pop("DATABASE_URL", None):
 
 from app import ai, clean, db, hunter, mailer, news, pipeline, qualify, scrape  # noqa: E402
 
+# Blocks below replace functions with stubs. Anything that needs the real one must
+# take it from here: three checks have already passed by exercising a stub, which
+# is worse than no check at all.
+REAL = {
+    "ai.pain_points": ai.pain_points,
+    "ai.classify_headlines": ai.classify_headlines,
+    "ai.classify_reply": ai.classify_reply,
+    "ai.extract_fields": ai.extract_fields,
+    "hunter.search": hunter.search,
+    "hunter.choose": hunter.choose,
+    "scrape.scrape_company": scrape.scrape_company,
+    "news.fetch": news.fetch,
+}
+
 PASS, FAIL = 0, 0
 
 
@@ -970,6 +984,23 @@ check("the compliance terms survive",
       '"SOC 2"' in _q and '"ISO 27001"' in _q and '"security breach"' in _q)
 check("only a handful of headlines go to the classifier",
       guard(lambda: ai.MAX_HEADLINES_PER_CALL <= 12))
+
+
+# --- step 5 has to write, not extract ----------------------------------------
+print("pain points")
+_REAL_PAINS = REAL["ai.pain_points"]
+check("the pains prompt does not carry the extraction rules",
+      "{rules}" not in ai.PAINS_PROMPT)
+check("and it forbids answering unknown", "unknown" in ai.PAINS_PROMPT.lower())
+check("and it forbids guessing pronouns",
+      "pronouns" in ai.PAINS_PROMPT.lower() or "never he or she" in ai.PAINS_PROMPT.lower())
+gemini.call_json = lambda prompt, temperature=0.1: {"pains": ["unknown", "unknown"]}
+check("an unknown answer is discarded rather than written into the email",
+      _REAL_PAINS({"name": "A", "title": "CEO"}, "X", "y", []) == [])
+gemini.call_json = lambda prompt, temperature=0.1: {
+    "pains": ["You lose weeks to evidence collection.", "Questionnaires stall deals."]}
+check("two real pains come through",
+      len(_REAL_PAINS({"name": "A", "title": "CEO"}, "X", "y", [])) == 2)
 
 # --- caps and passcode ------------------------------------------------------
 print("caps and passcode")

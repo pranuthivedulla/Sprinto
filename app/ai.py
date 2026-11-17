@@ -238,10 +238,18 @@ feels about security compliance (SOC 2, ISO 27001, GDPR) in their own day-to-day
 What the company does: {what}
 Signals we actually found about this company: {signals}
 
-{rules}
+This is a writing task, not an extraction task. The pain points describe what
+someone in this role typically deals with; they are not facts to be found.
 
-Each pain point is one sentence, specific to this person's role, and must not claim any
-fact about this company that is not in the signals above.
+Rules:
+- Each pain point is one sentence, about this person's role, not about the company.
+- Do not state any fact about this company beyond the signals listed above. No
+  certifications, funding, customers, headcount or incidents that are not there.
+- Never answer "unknown". If the signals are thin, write about the role alone.
+- The two must be different from each other.
+- Write "you", never he or she. A name does not tell you someone's pronouns and
+  guessing wrong about a real person is worse than the sentence being plainer.
+
 Return: {{"pains": ["...", "..."]}}"""
 
 
@@ -253,11 +261,13 @@ def pain_points(person, company, what_it_does, signals):
             company=company,
             what=what_it_does or "unknown",
             signals="; ".join(signals) if signals else "none beyond passing our filters",
-            rules=EVIDENCE_RULES,
         ),
         temperature=0.3,
     )
-    pains = [str(p).strip() for p in (data.get("pains") or []) if str(p).strip()]
+    pains = [
+        str(p).strip() for p in (data.get("pains") or [])
+        if str(p).strip() and str(p).strip().lower() not in ("unknown", "none", "n/a")
+    ]
     return pains[:2]
 
 
