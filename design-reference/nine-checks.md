@@ -343,3 +343,43 @@ Changed: config.TARGET_VERTICALS, the classifier's fixed list, the drop rule tex
 the demo list, evidence-map row 1b and its vertical-focus section, rubric-and-rules
 and the README. A check now asserts all three places agree, since the list lives in
 config, in the prompt and in the rule text.
+
+## Decision 23
+The devtools swap is validated, and running it found a step that had never worked.
+
+Zenskar came out tier High on 17 Nov 2026, the first High this system has produced
+in two months of running. Three counting signals, all quoted and all verified
+against the scraped pages: an open Product Security Engineer role on the careers
+page, an enterprise tier on the pricing page, and "We raised $15M in Series A
+funding in April 2026" taken from the company's own site rather than from news. One
+flag, employee count unknown. No code-check flags on the draft. The hook is the
+compliance-hiring signal, which is the strongest type in the rubric and had never
+fired before.
+
+That is the evidence Decision 22 was predicting rather than demonstrating.
+
+Step 5 had been returning ["unknown", "unknown"] for every company since the first
+build. PAINS_PROMPT carried EVIDENCE_RULES, which instructs the model to answer
+unknown when the text does not state something and never to infer. Writing two pain
+points for a role is not an extraction task, so the model obeyed and answered
+unknown twice, and draft_email was handed those as its inputs. The prompt now names
+itself a writing task, bans unknown, and still forbids claiming any fact about the
+company beyond the signals found; an unknown answer is discarded rather than passed
+on. It also requires "you" rather than he or she, after the first working output
+inferred a gender from the contact's first name.
+
+Worth keeping in mind: both of the failures found this week were invisible in the
+output. The news query returned zero headlines and the system reported tier Low,
+which looks like a finding. Step 5 returned unknown and the emails still read well,
+because the drafting model wrote around the gap. Neither was visible without
+reading the stored record. Judging this app by the email it produces will keep
+missing this class of fault.
+
+Three checks had passed by exercising a stub rather than the real function. The
+genuine callables are now snapshotted at the top of the suite before any block
+replaces them, and a check that raises records a failure instead of killing the run
+and hiding everything after it.
+
+Not yet proven: whether devtools holds up beyond one company, and whether the
+careers-page and trust-page signals work anywhere outside Zenskar. One High is a
+result, not a pattern.
