@@ -2,12 +2,12 @@
 Fill-before-you-build table (MESA Term 2, AI Case 2). Rule: each row asks for a FACT code can check, not a topic.
 
 ## ICP (from the case PDF)
-Series A-C SaaS companies (in fintech, healthtech, cleantech; 10-100 employees as our targeting filter) that are preparing for a compliance audit OR under pressure from enterprise customers to get certified.
+Series A-C SaaS companies (in fintech, healthtech, devtools; 10-100 employees as our targeting filter) that are preparing for a compliance audit OR under pressure from enterprise customers to get certified.
 
 | # | The question | Data that answers it | Where it lives | Sufficient when | Limit | If unanswered | Short-circuit |
 |---|---|---|---|---|---|---|---|
 | 1 | Is it a SaaS company? | Subscription pricing or a "Book a demo" CTA, plus a software product description | Homepage, pricing page | Either pricing tiers or demo CTA is present | 1 fetch | Drop | YES: clear "no" ends the run |
-| 1b | Which vertical is it in? | What the company says it does, in its own words | Homepage, about page (already scraped) | Gemini Flash picks one of fintech, healthtech, cleantech AND quotes the sentence it based that on | 1 (no extra fetch) | Flag as "vertical unclear", do not drop | YES: none of the three -> drop (hard gate, code applies it) |
+| 1b | Which vertical is it in? | What the company says it does, in its own words | Homepage, about page (already scraped) | Gemini Flash picks one of fintech, healthtech, devtools AND quotes the sentence it based that on | 1 (no extra fetch) | Flag as "vertical unclear", do not drop | YES: none of the three -> drop (hard gate, code applies it) |
 | 2 | What is the employee count? | A stated number or range ("team of 80", "50-200 employees") | About page | A number or range is stated | 1 fetch | Flag | YES: stated count outside 10-100 -> drop (hard gate, code applies it). Unknown count -> flag, do not drop |
 | 3 | What funding stage is it at? | A named round (Seed, Series A/B/C) | Blog/newsroom post, then Google News RSS headline | A named round with a date | 2 fetches, then 1 search | Flag, do not drop | No |
 | 4 | Is it hiring for compliance roles? | At least 1 open posting titled GRC, security compliance, InfoSec, Trust, or similar | Careers page, plus Google News headline saying the company is preparing for SOC 2 / ISO | 1 matching posting or 1 such headline | 2 fetches | Flag as "unknown" | No |
@@ -30,7 +30,7 @@ One query per company (name + keywords, last 2 years). Plain code fetches the fe
 - Funding stage (row 3) is often not on the company's own site, so it flags rather than drops.
 
 ## Vertical focus (decision approved)
-Target verticals: fintech, healthtech, cleantech (cleantech kept deliberately, weakest rationale: many cleantech firms are hardware/services and fail the SaaS gate anyway). Rationale for fintech and healthtech: enterprise buyers (banks, hospitals) require SOC 2 / ISO 27001 in security reviews. Row 1b is a hard drop applied by code; Flash only classifies from a fixed list and must quote evidence.
+Target verticals: fintech, healthtech, devtools. Cleantech was dropped on 17 Nov 2026, having never been tested: its own rationale here was the weakest, and most cleantech firms are hardware or services and fail the SaaS gate anyway. Devtools replaces it, meaning software sold to engineers: developer tools, APIs, data and cloud infrastructure. Rationale for fintech and healthtech: enterprise buyers (banks, hospitals) require SOC 2 / ISO 27001 in security reviews. Rationale for devtools: SOC 2 is table stakes to sell infrastructure into an engineering organisation, and a probe of candidate domains found pricing and careers pages on every one, which are the two artefacts the SaaS gate and the compliance-hiring signal depend on. Row 1b is a hard drop applied by code; Flash only classifies from a fixed list and must quote evidence.
 Risk: fuzzy edges (insurtech, medical devices, payments infra) and a smaller weekly pool.
 
 ## Worst case

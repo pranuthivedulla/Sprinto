@@ -57,7 +57,7 @@ def missing_keys(names):
 
 
 # Fixed, non-secret settings. These are decisions, not configuration knobs.
-TARGET_VERTICALS = ("fintech", "healthtech", "cleantech")
+TARGET_VERTICALS = ("fintech", "healthtech", "devtools")
 EMPLOYEE_MIN = 10
 EMPLOYEE_MAX = 100
 MAX_LOOP_FETCHES = 2

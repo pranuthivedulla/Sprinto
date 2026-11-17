@@ -15,7 +15,7 @@ Built from nine-checks.md and evidence-map.md. Rule of thumb: AI only reads mess
 
 ## 2. Hard filters (any "no" = drop; code applies them)
 1. Not SaaS (row 1)
-2. Vertical is none of fintech, healthtech, cleantech (row 1b)
+2. Vertical is none of fintech, healthtech, devtools (row 1b)
 3. Stated employee count outside 10-100 (row 2)
 4. SOC 2 and ISO 27001 both active on the trust page (row 5)
 5. No usable contact found by Hunter (row: PoC)

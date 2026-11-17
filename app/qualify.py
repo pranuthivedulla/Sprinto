@@ -8,7 +8,7 @@ from . import config, news
 
 HARD_FILTERS = (
     "not SaaS",
-    "vertical is not fintech, healthtech or cleantech",
+    "vertical is not fintech, healthtech or devtools",
     "stated employee count outside 10-100",
     "SOC 2 and ISO 27001 both active on the trust page",
     "no usable contact from Hunter",

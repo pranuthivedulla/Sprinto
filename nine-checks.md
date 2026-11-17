@@ -303,3 +303,43 @@ Known and not fixed: reply_quote is reused the same way reply_status was, so the
 sentence that showed interest is replaced by the sentence that picked a time. The
 calendar is stated availability rather than a real one. Escalation sets a status;
 it does not notify anyone.
+
+## Decision 22 (approved)
+Cleantech is dropped from the target verticals and devtools replaces it: software
+sold to engineers or technical teams, meaning developer tools, APIs, data and cloud
+infrastructure. Fintech and healthtech stay.
+
+Cleantech was never tested. Decision 6 kept it with the weakest rationale of the
+three, and evidence-map.md already said most cleantech firms are hardware or
+services and fail the SaaS gate anyway. Nothing was lost by removing it.
+
+Devtools was chosen on evidence rather than instinct. A probe of candidate domains
+on 17 Nov 2026 checked for the artefacts this pipeline actually depends on:
+
+  devtools      trust 2/4   careers 4/4   pricing 4/4
+  HR tech       trust 3/4   careers 3/4   pricing 2/4
+  fintech       trust 0/3   careers 3/3   pricing 0/3
+  healthtech    trust 1/3   careers 0/3   pricing 1/3
+
+Pricing is what the SaaS gate reads, and careers is where the compliance-hiring
+signal lives, which is the strongest intent signal in the rubric. Devtools has both
+on every domain probed. HR tech led on trust pages, and that is a reason against
+it rather than for it: a trust page showing SOC 2 and ISO 27001 both active is a
+hard drop under filter 4, so more trust pages means more rejections. Devtools has
+the opposite shape, which is the company Sprinto sells to - not certified yet, and
+being asked for it by customers.
+
+The healthtech row explains two months of Low tiers on its own: no careers page on
+any of the three, so the hiring signal was never findable, and one pricing page
+between them, which is the filter that dropped Qure.ai. Healthtech is kept rather
+than dropped: it is defensible in the write-up and it gives the Dropped table
+honest content, but it performs badly in this market and that is worth stating.
+
+The probe only tried /trust and /security, so a company using another path or a
+subdomain reads as absent. The trust column is a floor, not a count; careers and
+pricing are reliable.
+
+Changed: config.TARGET_VERTICALS, the classifier's fixed list, the drop rule text,
+the demo list, evidence-map row 1b and its vertical-focus section, rubric-and-rules
+and the README. A check now asserts all three places agree, since the list lives in
+config, in the prompt and in the rule text.

@@ -197,6 +197,22 @@ check("both certifications active drops",
 check("SOC 2 alone does not drop",
       qualify.site_filters(fields_for(certifications=both[:1]), VERTICAL_OK) is None)
 
+
+# --- the target verticals are written in three places ------------------------
+print("target verticals")
+check("config names three verticals", len(config.TARGET_VERTICALS) == 3)
+check("the classifier prompt offers exactly those",
+      all(v in ai.VERTICAL_PROMPT for v in config.TARGET_VERTICALS))
+check("and the drop rule names exactly those",
+      all(v in qualify.HARD_FILTERS[1] for v in config.TARGET_VERTICALS))
+check("nothing still refers to the dropped vertical",
+      "cleantech" not in ai.VERTICAL_PROMPT
+      and "cleantech" not in qualify.HARD_FILTERS[1]
+      and "cleantech" not in str(config.TARGET_VERTICALS))
+check("a company in a target vertical is not dropped for it",
+      qualify.site_filters(fields_for(), {**VERTICAL_OK, "value": config.TARGET_VERTICALS[2]})
+      is None)
+
 # --- signals and ranking ----------------------------------------------------
 print("signals and ranking")
 hiring = {"value": "yes", "quote": "GRC Manager", "source": "https://acme.io/careers",

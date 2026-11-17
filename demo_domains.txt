@@ -17,8 +17,8 @@ setu.co
 perfios.com
 m2pfintech.com
 
-# Cleantech
-sensehawk.com
-ecolibrium.io
-climatiq.io
-watershed.com
+# Devtools
+atlan.com
+appsmith.com
+hasura.io
+zenskar.com

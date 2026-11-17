@@ -101,7 +101,9 @@ def extract_fields(blob):
 # --- (b) vertical ------------------------------------------------------------
 
 VERTICAL_PROMPT = """Classify this company into exactly one of: fintech, healthtech,
-cleantech, none. "none" means it is not in any of those three.
+devtools, none. "none" means it is not in any of those three.
+devtools means software sold to engineers or technical teams: developer tools,
+APIs, data or cloud infrastructure, internal platforms.
 
 {rules}
 
@@ -110,7 +112,7 @@ Text:
 {blob}
 ---
 
-Return: {{"vertical": "fintech|healthtech|cleantech|none",
+Return: {{"vertical": "fintech|healthtech|devtools|none",
           "quote": "the sentence that shows it", "source": "page url",
           "certain": true|false}}
 Set certain to false if the text is too thin to tell; the quote must still be real."""
@@ -119,7 +121,7 @@ Set certain to false if the text is too thin to tell; the quote must still be re
 def classify_vertical(blob):
     data = gemini.call_json(VERTICAL_PROMPT.format(rules=EVIDENCE_RULES, blob=blob))
     vertical = str(data.get("vertical", "")).lower().strip()
-    if vertical not in ("fintech", "healthtech", "cleantech", "none"):
+    if vertical not in ("fintech", "healthtech", "devtools", "none"):
         vertical = UNKNOWN
     return {
         "value": vertical,
