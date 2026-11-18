@@ -43,6 +43,17 @@ def token_ok(token):
     return (time.time() - int(payload)) < config.SESSION_MAX_AGE
 
 
+def gate_on():
+    """There is a gate only while a passcode is configured.
+
+    Leaving REVIEW_PASSCODE unset opens the page to anyone holding the link,
+    names and work email addresses included. That is a deliberate choice for a
+    graded demo nobody else is given the URL to, not a default to drift into,
+    so the page says on itself that it is open.
+    """
+    return bool(config.get("REVIEW_PASSCODE"))
+
+
 def passcode_ok(given):
     expected = config.get("REVIEW_PASSCODE")
     return bool(expected) and hmac.compare_digest(str(given), expected)
@@ -79,6 +90,8 @@ def authorized(request, passcode_field=""):
     The cookie is SameSite=Lax, so another site cannot post to these endpoints
     with it attached.
     """
+    if not gate_on():
+        return True
     if token_ok(request.cookies.get(COOKIE_NAME)):
         return True
     return passcode_ok(passcode_field)

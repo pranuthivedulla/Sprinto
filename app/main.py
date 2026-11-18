@@ -14,16 +14,22 @@ app = FastAPI(title="Sprinto cold outreach")
 templates = Jinja2Templates(directory=str(config.ROOT / "app" / "templates"))
 
 TIER_ORDER = {"High": 0, "Medium": 1, "Low": 2}
-REQUIRED_KEYS = ["GEMINI_API_KEY", "HUNTER_API_KEY", "REVIEW_PASSCODE", "TO_EMAIL"]
+REQUIRED_KEYS = ["GEMINI_API_KEY", "HUNTER_API_KEY", "TO_EMAIL"]
 SEND_KEYS = ["GMAIL_SENDER_ADDRESS", "GMAIL_APP_PASSWORD", "TO_EMAIL"]
 
 
-MISCONFIGURED_IN_PRODUCTION = ("REVIEW_PASSCODE", "SESSION_SECRET")
+MISCONFIGURED_IN_PRODUCTION = ("SESSION_SECRET",)
 
 
 def misconfigured():
-    """In production these two must be set, or the review page is open to anyone."""
-    if not config.is_production():
+    """A gate that exists must be able to sign its own cookie.
+
+    REVIEW_PASSCODE is optional: without it there is no gate and the page is
+    open to anyone with the link, which it says so itself. With it, production
+    also needs SESSION_SECRET, or the session a reviewer is handed is signed
+    with a key that dies on the next cold start.
+    """
+    if not config.is_production() or not auth.gate_on():
         return []
     return [n for n in MISCONFIGURED_IN_PRODUCTION if not config.get(n)]
 
@@ -151,6 +157,7 @@ def _page_context(request, message="", error=""):
         "message": message,
         "error": error,
         "demo_domains": demo_domains(),
+        "gate_on": auth.gate_on(),
         "to_schedule": [
             {"id": r["id"], "name": r["company_name"] or r["domain"],
              "quote": r["reply_quote"] or ""}
@@ -198,8 +205,17 @@ def login_form(request: Request, error: str = ""):
     )
 
 
+@app.get("/robots.txt")
+def robots():
+    """Belt and braces with the X-Robots-Tag header: with no gate in front of
+    the page, a crawler finding the link is the way it would get indexed."""
+    return PlainTextResponse("User-agent: *\nDisallow: /\n")
+
+
 @app.post("/login")
 def login(request: Request, passcode: str = Form("")):
+    if not auth.gate_on():
+        return RedirectResponse("/", status_code=303)
     ip = auth.client_ip(request)
     if auth.throttled(ip):
         return templates.TemplateResponse(

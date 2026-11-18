@@ -218,6 +218,11 @@ email goes to <code>TO_EMAIL</code> and nowhere else.</p>
 
 <div class="wrap">
 
+{% if not gate_on %}
+<div class="note warn">This page is open. Anyone with the link can read it, including
+the names, titles and work email addresses on it. Setting <code>REVIEW_PASSCODE</code>
+puts the passcode screen back.</div>
+{% endif %}
 {% if message %}<div class="note ok">{{ message }}</div>{% endif %}
 {% if error %}<div class="note bad">{{ error }}</div>{% endif %}
 {% if missing_keys %}

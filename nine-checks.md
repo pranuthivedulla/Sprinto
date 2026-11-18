@@ -499,3 +499,43 @@ mislabelled drop reason: a confident wrong statement sitting beside correct data
 
 227 checks pass unchanged. No test needed editing, because they assert on text
 the page shows rather than on where it sits.
+
+## Decision 27 (approved, over an objection recorded here)
+The passcode is optional. Unset, there is no gate, and the page says so.
+
+Asked for, so that a grader can open the deployed link without being handed a
+passcode. The objection was made once and is kept here rather than lost: the
+review page lists real people's names, titles and work email addresses - an
+Appsmith CTO, a HealthPlix contact, and whoever is researched next - and a link
+is a credential anyone can forward. The reply was that nobody but the grader
+will know the URL. That is the owner's call to make, and it was made.
+
+What the code does now. `auth.gate_on()` is true only while REVIEW_PASSCODE is
+set. Unset, `authorized()` returns true, `/login` redirects inward instead of
+asking, and the review page carries a banner saying it is open and naming what
+is on it. Set, nothing about the old behaviour changes: the same passcode check,
+the same five-failure throttle, the same signed cookie.
+
+The production guard was inverted to match. It used to refuse to serve without
+REVIEW_PASSCODE and SESSION_SECRET. Refusing to start is right when a gate is
+expected and missing, and wrong when the deployment is deliberately open, so it
+now demands SESSION_SECRET only when a passcode exists - a gate that cannot sign
+its own cookie is the broken case, an absent gate is not.
+
+Two things were added rather than removed, because the protection that is left
+should be the protection that works. `/robots.txt` disallows everything, beside
+the X-Robots-Tag header that every response already carried; with no login in
+front of the page, a crawler reaching the link is how it would get indexed. And
+the banner is in the page itself, not in this file, so the state is visible to
+whoever is looking at it.
+
+The deployment is not open until REVIEW_PASSCODE is deleted from the Vercel
+project and it is redeployed. Code cannot do that from here, and ignoring a
+configured passcode would be worse than leaving it: a gate that is set and does
+not work is a trap.
+
+234 checks, seven of them new: the page opens with no login and admits it, the
+login screen sends you inward, an open page still takes a run, production serves
+rather than refuses, robots.txt disallows, and putting the passcode back closes
+everything again. The check that production refuses without a cookie secret was
+rewritten rather than deleted, because that case is still real.

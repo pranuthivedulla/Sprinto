@@ -665,18 +665,42 @@ def _as_vercel(fn):
 
 
 _saved_pass = os.environ.get("REVIEW_PASSCODE", "")
-os.environ["REVIEW_PASSCODE"] = ""
+_saved_secret = os.environ.get("SESSION_SECRET", "")
+os.environ["SESSION_SECRET"] = ""
 _r = _as_vercel(lambda: TestClient(main.app).get("/", follow_redirects=False))
-check("production without a passcode refuses to serve", _r.status_code == 503)
+check("production with a gate but no cookie secret refuses to serve",
+      _r.status_code == 503)
 check("and the reason is readable, not a stack trace",
-      "REVIEW_PASSCODE" in _r.text and "environment variables" in _r.text)
+      "SESSION_SECRET" in _r.text and "environment variables" in _r.text)
 check("even a refusal keeps search engines away",
       _r.headers.get("X-Robots-Tag") == "noindex, nofollow")
-os.environ["REVIEW_PASSCODE"] = _saved_pass
+os.environ["SESSION_SECRET"] = _saved_secret
 config._ENV_LOADED = True
 check("with both set, production serves normally",
       _as_vercel(lambda: TestClient(main.app).get("/", follow_redirects=False)
                  ).status_code == 303)
+
+# No passcode configured means no gate at all. That is a choice, so the page
+# has to admit to it rather than quietly serving names and emails to anyone.
+os.environ["REVIEW_PASSCODE"] = ""
+config._ENV_LOADED = True
+_open = TestClient(main.app)
+_r = _open.get("/", follow_redirects=False)
+check("with no passcode set the page opens with no login", _r.status_code == 200)
+check("and the page says on itself that it is open", "This page is open" in _r.text)
+check("the passcode screen sends you straight in",
+      _open.get("/login", follow_redirects=False).status_code == 303)
+check("an open page still accepts a run",
+      _open.post("/run-domain", data={"domain": "open-mode.com"}).status_code == 200)
+check("production serves an open page instead of refusing",
+      _as_vercel(lambda: TestClient(main.app).get("/", follow_redirects=False)
+                 ).status_code == 200)
+check("robots.txt tells crawlers to stay out of all of it",
+      "Disallow: /" in TestClient(main.app).get("/robots.txt").text)
+os.environ["REVIEW_PASSCODE"] = _saved_pass
+config._ENV_LOADED = True
+check("putting the passcode back closes the page again",
+      TestClient(main.app).get("/", follow_redirects=False).status_code == 303)
 
 
 # --- one slow AI endpoint must not kill the domain ---------------------------

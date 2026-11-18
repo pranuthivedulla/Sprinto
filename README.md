@@ -16,7 +16,8 @@ cp .env.example .env        # then fill it in; .env is gitignored
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://127.0.0.1:8000. It asks for `REVIEW_PASSCODE` before showing anything.
+Open http://127.0.0.1:8000. With `REVIEW_PASSCODE` set it asks for that first;
+left empty there is no gate, and the page says on itself that it is open.
 
 Offline checks, which need no key and spend nothing:
 
@@ -86,7 +87,7 @@ Copy `.env.example` to `.env`. `.env` is in `.gitignore`.
 | `GMAIL_APP_PASSWORD` | app password from that account (needs 2-step verification) |
 | `TO_EMAIL` | your own inbox: the only address this app will ever send to |
 | `DAILY_SEND_CAP` | default 15 |
-| `REVIEW_PASSCODE` | checked on the server for Run, Approve, Save and Reject |
+| `REVIEW_PASSCODE` | optional; set, it is checked on the server for Run, Approve, Save and Reject. Unset, there is no gate |
 
 ## Spikes
 
@@ -143,8 +144,8 @@ Never in the repository: this repository is public.
 | `GMAIL_APP_PASSWORD` | 16 characters, no spaces |
 | `TO_EMAIL` | the only address this app will send to |
 | `DAILY_SEND_CAP` | 15 |
-| `REVIEW_PASSCODE` | the app refuses to start in production without it |
-| `SESSION_SECRET` | any long random string; signs the review cookie |
+| `REVIEW_PASSCODE` | optional; unset means no gate, and the page says so |
+| `SESSION_SECRET` | any long random string; signs the review cookie. Required in production only when `REVIEW_PASSCODE` is set |
 | `DATABASE_URL` | Neon's **pooled** connection string |
 
 `maxDuration` in `vercel.json` is 300, and a Hobby deployment accepted it. One
@@ -156,7 +157,7 @@ enough: the scrape used all of it and the AI call had nothing left.
 
 | | Check | How |
 |---|---|---|
-| a | The page asks for the passcode | open the URL in a private window; it should redirect to `/login` |
+| a | The gate behaves as configured | open the URL in a private window: with `REVIEW_PASSCODE` set it should redirect to `/login`, without it the page should open and carry the "This page is open" banner |
 | b | One domain runs end to end inside the time limit | add one chip, Run, watch the row reach a verdict |
 | c | The Hunter cache survives a cold start | run the same domain twice, minutes apart; the second card is flagged "contact came from the Hunter cache" and your Hunter search count does not move |
 | d | An approved send lands in `TO_EMAIL` | approve one draft; the email should carry the `[Demo redirect]` banner naming the contact |
