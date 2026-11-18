@@ -9,7 +9,7 @@ from . import config, news
 HARD_FILTERS = (
     "not SaaS",
     "vertical is not fintech, healthtech or devtools",
-    "stated employee count outside 10-100",
+    "stated size outside 10-100: headcount or a round past Series C",
     "SOC 2 and ISO 27001 both active on the trust page",
     "no usable contact from Hunter",
 )
@@ -47,6 +47,21 @@ def parse_headcount(raw):
         n = int(single.group(1))
         return n, n
     return None, None
+
+
+def named_round(fields):
+    """The funding round the site states, lowercased, when the quote checks out."""
+    if not verified(fields, "funding_stage"):
+        return ""
+    return value_of(fields, "funding_stage").lower()
+
+
+def past_icp_round(fields):
+    return any(r in named_round(fields) for r in config.ROUNDS_PAST_ICP)
+
+
+def edge_icp_round(fields):
+    return any(r in named_round(fields) for r in config.ROUND_AT_ICP_EDGE)
 
 
 def certs_active(fields):
@@ -97,6 +112,12 @@ def site_filters(fields, vertical):
             above = low > config.EMPLOYEE_MAX
             if below or above:
                 return HARD_FILTERS[2], f.get("quote", ""), f.get("source", "")
+
+    # Row 2, on the evidence the site does give. A company announcing Series D is
+    # not a 10-100 person company, whether or not it prints a headcount.
+    if past_icp_round(fields):
+        f = field(fields, "funding_stage")
+        return (HARD_FILTERS[2], f.get("quote", ""), f.get("source", ""))
 
     active = {name for name, _ in certs_active(fields)}
     if "SOC 2" in active and "ISO 27001" in active:
@@ -207,6 +228,18 @@ def build_signals(fields, vertical, news_sig):
                 "counts": True,
             }
         )
+    if edge_icp_round(fields):
+        f = field(fields, "funding_stage")
+        signals.append(
+            {
+                "key": "late_round_for_size",
+                "label": "Series C: likely outside the 10-100 employee range",
+                "quote": f.get("quote", ""),
+                "source": f.get("source", ""),
+                "counts": False,
+                "against": True,
+            }
+        )
     if news_sig.get("negative"):
         item = news_sig["negative"]
         signals.append(
@@ -281,8 +314,10 @@ def build_flags(fields, vertical, signals, hunter_source):
         flags.append("vertical unclear")
     if not any(s["key"] == "funding_round" for s in signals):
         flags.append("funding stage unknown")
-    if any(s.get("against") for s in signals):
+    if any(s["key"] == "likely_already_certified" for s in signals):
         flags.append("likely already certified")
+    if any(s["key"] == "late_round_for_size" for s in signals):
+        flags.append("Series C on the site - likely outside the 10-100 range")
     if any(s["key"] == "negative_news" for s in signals):
         flags.append("negative news found (reviewer only, not in the email)")
     if not any(s.get("counts") for s in signals):

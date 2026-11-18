@@ -60,6 +60,13 @@ def missing_keys(names):
 TARGET_VERTICALS = ("fintech", "healthtech", "devtools")
 EMPLOYEE_MIN = 10
 EMPLOYEE_MAX = 100
+# Evidence map row 2 can only fire on a stated headcount, and most sites state none.
+# A named late round is a stated fact about scale that the row was ignoring: Atlan
+# passed the 10-100 filter while its own page said it had raised $105M at Series C.
+# D or later is outside the Series A-C ICP outright and drops; C counts against the
+# tier instead, because the ICP wording does include it.
+ROUNDS_PAST_ICP = ("series d", "series e", "series f", "series g", "series h")
+ROUND_AT_ICP_EDGE = ("series c",)
 MAX_LOOP_FETCHES = 2
 EMAIL_WORD_LIMIT = 130  # "about 120 words or fewer" with a little slack before flagging
 GEMINI_DEFAULT_MODEL = "gemini-3.8-flash"

@@ -383,3 +383,32 @@ and hiding everything after it.
 Not yet proven: whether devtools holds up beyond one company, and whether the
 careers-page and trust-page signals work anywhere outside Zenskar. One High is a
 result, not a pattern.
+
+## Decision 24 (approved)
+Row 2 now reads the funding round the site states, not only a headcount.
+
+Atlan came out tier High on 17 Nov 2026 while its own page said "We raised $105
+million led by GIC and Meritech Capital" at Series C. Row 2 can only fire on a
+stated headcount and Atlan states none, so a company of that scale passed the
+10-100 filter and presented as a top lead. The record held the evidence and the
+rule ignored it.
+
+A stated round past Series C now drops on row 2: it is a stated fact about scale,
+and most sites give no headcount. A stated Series C counts against the tier
+instead and is flagged, because the ICP wording is Series A-C and does include it.
+Re-run under the rule, Atlan is Medium with "Series C on the site - likely outside
+the 10-100 range" on the card, which is the honest reading: still in the ICP by
+stage, probably outside it by size, and the reviewer can see both.
+
+An unverified funding quote drops nothing, same as every other rule here.
+
+The drop reason was relabelled. It read "stated employee count outside 10-100",
+which would have been a false explanation on a funding-based drop, and a wrong
+reason printed confidently beside a correct verdict is the fault this project keeps
+finding in itself.
+
+Also recorded from the same three runs: devtools produced High on all three
+companies, and the negative-news path fired for the first time on Appsmith's
+CVE-2026-22794 account-takeover story. It counted towards the tier, was flagged for
+the reviewer only, and was correctly not chosen as the hook. That branch had never
+run on real data.

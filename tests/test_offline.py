@@ -227,6 +227,45 @@ check("a company in a target vertical is not dropped for it",
       qualify.site_filters(fields_for(), {**VERTICAL_OK, "value": config.TARGET_VERTICALS[2]})
       is None)
 
+
+# --- row 2 reads the funding round when no headcount is stated ---------------
+print("size from funding stage")
+
+
+def _staged(stage):
+    return fields_for(
+        employee_count={"value": "unknown", "quote": "", "source": "", "verified": False},
+        funding_stage={"value": stage, "quote": f"We raised at {stage}", "source": "u",
+                       "verified": True},
+        enterprise_pressure={"value": "yes", "quote": "Enterprise plan", "source": "u",
+                             "verified": True})
+
+
+_none_news = {"funding": None, "audit_prep": None, "certified": None, "negative": None}
+check("Series A with no headcount is not dropped",
+      qualify.site_filters(_staged("Series A"), VERTICAL_OK) is None)
+check("Series C with no headcount is not dropped either",
+      qualify.site_filters(_staged("Series C"), VERTICAL_OK) is None)
+check("but Series C counts against the tier",
+      qualify.tier_for(qualify.build_signals(_staged("Series C"), VERTICAL_OK, _none_news))[0]
+      == "Medium")
+check("while Series A does not",
+      qualify.tier_for(qualify.build_signals(_staged("Series A"), VERTICAL_OK, _none_news))[0]
+      == "High")
+_d = qualify.site_filters(_staged("Series D"), VERTICAL_OK)
+check("Series D drops on the size rule", _d is not None)
+check("and the reason names size, not headcount alone",
+      "size" in _d[0] and "Series C" in _d[0])
+check("and the quote is the funding sentence", "Series D" in _d[1])
+check("an unverified round never drops anything",
+      qualify.site_filters(fields_for(funding_stage={
+          "value": "Series D", "quote": "made up", "source": "u", "verified": False}),
+          VERTICAL_OK) is None)
+check("Series C is flagged for the reviewer",
+      any("Series C" in f for f in qualify.build_flags(
+          _staged("Series C"), VERTICAL_OK,
+          qualify.build_signals(_staged("Series C"), VERTICAL_OK, _none_news), "api")))
+
 # --- signals and ranking ----------------------------------------------------
 print("signals and ranking")
 hiring = {"value": "yes", "quote": "GRC Manager", "source": "https://acme.io/careers",

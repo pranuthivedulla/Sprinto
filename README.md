@@ -49,7 +49,7 @@ quote that triggered it):
 
 1. Not SaaS, or nothing readable says it is one
 2. Vertical is not fintech, healthtech or devtools
-3. A *stated* employee count outside 10-100
+3. A *stated* size outside 10-100 — a headcount, or a funding round past Series C
 4. SOC 2 **and** ISO 27001 both shown active on the trust page
 5. No usable contact from Hunter
 
