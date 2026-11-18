@@ -4,135 +4,168 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sprinto cold outreach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* Monospace on black, after codapress.co.uk. Colour is a signal here, not
+     decoration: pink marks what wants a decision, nothing else is coloured. */
   :root {
-    --sky-wash:#f3fafe; --sky-soft:#e3f3fd; --sky-edge:#bfe3f8;
-    --sky:#0a93d6; --sky-deep:#06739f; --sky-ink:#05516f;
-    --pink:#e8368f; --pink-wash:#fdeef6; --pink-edge:#f7c2dc;
-    --ink:#102432; --muted:#5a6b7a; --line:#dbe9f2;
-    --ok:#0d7a5f; --ok-wash:#e6f6f1; --ok-edge:#b6e2d4;
+    --bg:#000; --panel:#0c0c0c; --panel-2:#151515; --raised:#1f1f1f;
+    --line:#2e2e2e; --line-soft:#1e1e1e;
+    --text:#f0f0f0; --dim:#8c8c8c; --dimmer:#5e5e5e;
+    --pink:#ff3d85; --pink-dim:#a8265a;
+    --sky:#56c2f0; --ok:#4ad295;
+    --mono:"JetBrains Mono","Courier New",ui-monospace,monospace;
   }
   * { box-sizing:border-box; }
-  body { margin:0; padding:0 0 64px; color:var(--ink);
-         background:var(--sky-wash);
-         font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-  .wrap { max-width:960px; margin:0 auto; padding:0 16px; }
+  body { margin:0; padding:0 0 96px; background:var(--bg); color:var(--text);
+         font:15px/1.6 var(--mono); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 24px; }
 
-  /* Header band: the sky blue, used once and large rather than everywhere */
-  .masthead { background:linear-gradient(180deg,#e9f5fd 0%,var(--sky-wash) 100%);
-              border-bottom:1px solid var(--sky-edge); padding:28px 0 22px;
-              margin-bottom:24px; }
-  .masthead h1 { display:flex; align-items:center; gap:10px; }
-  .masthead h1::before { content:""; width:6px; height:26px; border-radius:3px;
-                         background:linear-gradient(180deg,var(--sky) 60%,var(--pink) 60%); }
-  h1 { font-size:23px; margin:0 0 6px; letter-spacing:-.01em; }
-  h2 { font-size:17px; margin:32px 0 10px; }
-  .sub { color:var(--muted); margin:0; max-width:70ch; }
+  /* Masthead: the hero idea, shrunk. Two lines, the second one receding. */
+  .masthead { border-bottom:1px solid var(--line); padding:44px 0 32px;
+              margin-bottom:36px;
+              background:radial-gradient(120% 140% at 15% 0%, #1c1c1c 0%, #000 62%); }
+  .masthead h1 { font-size:36px; line-height:1.02; font-weight:400; margin:0;
+                 letter-spacing:-.01em; text-transform:uppercase; }
+  .masthead h1 .fade { display:block; color:var(--dimmer); }
+  .masthead .sub { color:var(--dim); margin:18px 0 0; max-width:74ch;
+                   font-size:13px; line-height:1.7; }
+  .mark { display:inline-flex; align-items:center; gap:9px; margin-bottom:20px;
+          font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+          color:var(--dim); }
+  .mark::before { content:""; width:17px; height:17px; background:var(--text);
+                  box-shadow:inset 0 0 0 4px #000, inset 0 0 0 9px var(--text); }
 
-  .box { background:#fff; border:1px solid var(--line); border-radius:12px;
-         padding:18px; margin-bottom:16px;
-         box-shadow:0 1px 2px rgba(16,36,50,.04), 0 6px 18px rgba(10,147,214,.05); }
+  /* Section heads: label, count, then a rule running out to the margin. */
+  h2 { font-size:25px; font-weight:400; margin:54px 0 14px;
+       display:flex; align-items:center; gap:16px; line-height:1; }
+  h2 .c { font-size:11px; letter-spacing:.18em; color:var(--dimmer);
+          text-transform:uppercase; }
+  h2::after { content:""; flex:1; height:1px; background:var(--line); }
+  h1 { font-size:24px; margin:0 0 6px; font-weight:400; }
+  .sub { color:var(--dim); margin:0; max-width:74ch; }
 
-  label { display:block; font-weight:600; font-size:13px; margin:10px 0 4px; }
-  textarea, input[type=text], input[type=password] { width:100%; padding:9px 10px;
-    border:1px solid var(--sky-edge); border-radius:8px; font:inherit; background:#fff;
-    color:var(--ink); }
-  textarea:focus, input:focus { outline:2px solid var(--sky); outline-offset:1px;
-    border-color:var(--sky); }
-  textarea { resize:vertical; }
+  .box { background:var(--panel); border:1px solid var(--line); border-radius:5px;
+         padding:22px; margin-bottom:14px; }
 
-  button { padding:9px 15px; border:1px solid var(--sky-edge); border-radius:8px;
-           background:#fff; color:var(--sky-ink); font:inherit; font-weight:600;
-           cursor:pointer; }
-  button:hover { background:var(--sky-soft); }
-  button.primary { background:var(--sky); color:#fff; border-color:var(--sky); }
-  button.primary:hover { background:var(--sky-deep); border-color:var(--sky-deep); }
-  button.danger { color:var(--pink); border-color:var(--pink-edge); }
-  button.danger:hover { background:var(--pink-wash); }
+  label { display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+          color:var(--dim); margin:14px 0 6px; }
+  textarea, input[type=text], input[type=password] { width:100%; padding:11px 12px;
+    border:1px solid var(--line); border-radius:0; font:inherit; font-size:14px;
+    background:#070707; color:var(--text); }
+  textarea:focus, input:focus { outline:1px solid var(--pink); outline-offset:0;
+    border-color:var(--pink); }
+  textarea { resize:vertical; line-height:1.7; }
+  ::placeholder { color:var(--dimmer); }
+
+  /* Buttons are square and shouted, as on the reference. White is the one that acts. */
+  button { padding:11px 20px; border:1px solid var(--line); border-radius:0;
+           background:var(--raised); color:var(--text); font:inherit; font-size:12px;
+           letter-spacing:.1em; text-transform:uppercase; cursor:pointer;
+           transition:background .12s, border-color .12s; }
+  button:hover { background:#2c2c2c; border-color:#3d3d3d; }
+  button.primary { background:var(--text); color:#000; border-color:var(--text);
+                   font-weight:700; }
+  button.primary:hover { background:#fff; border-color:#fff; }
+  button.danger { background:transparent; color:var(--pink); border-color:var(--pink-dim); }
+  button.danger:hover { background:rgba(255,61,133,.1); border-color:var(--pink); }
   button:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
-  button:disabled { cursor:not-allowed; opacity:.5; }
-  button.primary:disabled { background:#cfe3ef; border-color:#cfe3ef; color:#6b8697; }
-  button.primary:disabled:hover { background:#cfe3ef; }
+  button:disabled { cursor:not-allowed; opacity:.35; }
+  button.primary:disabled:hover { background:var(--text); }
 
-  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .note { padding:11px 13px; border-radius:8px; margin-bottom:14px; }
-  .note.ok { background:var(--ok-wash); border:1px solid var(--ok-edge); }
-  .note.bad { background:var(--pink-wash); border:1px solid var(--pink-edge); }
-  .note.warn { background:var(--sky-soft); border:1px solid var(--sky-edge); }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .note { padding:13px 15px; border-radius:5px; margin-bottom:16px; font-size:13px;
+          border:1px solid var(--line); background:var(--panel-2); }
+  .note.ok { border-color:#245c43; }
+  .note.bad { border-color:var(--pink-dim); }
+  .note.warn { border-color:#3f3a1e; }
 
-  /* Pink marks the things that want your attention: the top leads, the problems */
-  .tier { font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:11px;
-          padding:2px 9px; border-radius:999px; }
-  .tier.High { color:#fff; background:var(--pink); }
-  .tier.Medium { color:var(--sky-ink); background:var(--sky-soft);
-                 border:1px solid var(--sky-edge); }
-  .tier.Low { color:var(--muted); background:#eef2f5; border:1px solid var(--line); }
+  /* Tier: pink only for the top of the list. */
+  .tier { font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:10px;
+          padding:4px 9px; border:1px solid var(--line); border-radius:0;
+          color:var(--dim); white-space:nowrap; }
+  .tier.High { color:#000; background:var(--pink); border-color:var(--pink); }
+  .tier.Medium { color:var(--text); border-color:#4a4a4a; }
+  .tier.Low { color:var(--dimmer); }
 
-  .flags { margin:8px 0 0; padding:0; list-style:none; font-size:13px; }
-  .flags li { display:inline-block; background:var(--sky-soft);
-              border:1px solid var(--sky-edge); color:var(--sky-ink);
-              border-radius:999px; padding:2px 10px; margin:3px 4px 0 0; }
-  .flags li.check { background:var(--pink-wash); border-color:var(--pink-edge);
-                    color:#a01e63; }
-  .flags li.clear { background:var(--ok-wash); border-color:var(--ok-edge);
-                    color:var(--ok); }
+  .flags { margin:14px 0 0; padding:0; list-style:none; font-size:12px; }
+  .flags li { display:inline-block; background:var(--panel-2); border:1px solid var(--line);
+              color:var(--dim); padding:3px 10px; margin:0 5px 5px 0; }
+  .flags li.check { border-color:var(--pink-dim); color:var(--pink); }
+  .flags li.clear { border-color:#245c43; color:var(--ok); }
 
-  details { margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
-  summary { cursor:pointer; font-weight:600; font-size:13px; color:var(--sky-ink); }
+  details { margin-top:16px; border-top:1px solid var(--line-soft); padding-top:12px; }
+  summary { cursor:pointer; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--dim); }
+  summary:hover { color:var(--text); }
   table { border-collapse:collapse; width:100%; font-size:13px; }
-  td, th { border-bottom:1px solid var(--line); padding:7px 8px; text-align:left;
+  td, th { border-bottom:1px solid var(--line-soft); padding:9px 10px; text-align:left;
            vertical-align:top; }
-  th { color:var(--muted); font-weight:600; }
-  .muted { color:var(--muted); font-size:13px; }
-  .quote { font-style:italic; color:var(--muted); }
-  a { color:var(--sky-deep); }
-  code { background:var(--sky-soft); color:var(--sky-ink); padding:1px 5px;
-         border-radius:4px; font-size:12px; }
+  th { color:var(--dimmer); font-weight:400; font-size:10px; letter-spacing:.16em;
+       text-transform:uppercase; border-bottom-color:var(--line); }
+  tr:last-child td { border-bottom:0; }
+  .muted { color:var(--dim); font-size:13px; }
+  .quote { color:var(--dim); }
+  a { color:var(--text); text-decoration:underline; text-underline-offset:3px; }
+  a:hover { color:var(--pink); }
+  code { background:var(--panel-2); border:1px solid var(--line-soft); color:var(--text);
+         padding:1px 6px; font-size:12px; }
+  strong { font-weight:700; }
 
-  /* Chip input: you can see your list, and fix it, before anything is spent */
-  .chipbox { border:1px solid var(--sky-edge); border-radius:8px; background:#fff;
-             padding:6px; }
-  .chipbox:focus-within { outline:2px solid var(--sky); outline-offset:1px; }
+  /* Chip input: you see the list, and can fix it, before anything is spent. */
+  .chipbox { border:1px solid var(--line); background:#070707; padding:7px; }
+  .chipbox:focus-within { border-color:var(--pink); }
   .chips { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
-  .chips:not(:empty) { margin-bottom:6px; }
-  .chip { display:inline-flex; align-items:center; gap:6px; font-size:13px;
-          background:var(--sky-soft); border:1px solid var(--sky-edge);
-          color:var(--sky-ink); border-radius:999px; padding:3px 6px 3px 11px; }
-  .chip.bad { background:var(--pink-wash); border-color:var(--pink-edge); color:#a01e63; }
-  .chip em { font-style:normal; opacity:.8; }
-  .chip .x { border:0; background:transparent; color:inherit; font-weight:700;
-             cursor:pointer; padding:0 4px; border-radius:999px; line-height:1; }
-  .chip .x:hover { background:rgba(0,0,0,.08); }
-  .chipbox input { border:0; outline:0; padding:6px 5px; width:100%; font:inherit; }
+  .chips:not(:empty) { margin-bottom:7px; }
+  .chip { display:inline-flex; align-items:center; gap:7px; font-size:12px;
+          background:var(--panel-2); border:1px solid var(--line);
+          color:var(--text); padding:4px 6px 4px 11px; }
+  .chip.bad { border-color:var(--pink-dim); color:var(--pink); }
+  .chip em { font-style:normal; color:var(--dim); }
+  .chip .x { border:0; background:transparent; color:var(--dim); font-weight:700;
+             cursor:pointer; padding:0 4px; line-height:1; letter-spacing:0; }
+  .chip .x:hover { background:transparent; color:var(--pink); }
+  .chipbox input { border:0; outline:0; padding:7px 5px; width:100%; font:inherit;
+                   background:transparent; }
 
-  .picks { margin-bottom:10px; }
-  button.pick { border-color:var(--sky-edge); background:var(--sky-soft);
-                color:var(--sky-ink); padding:7px 12px; }
-  button.pick:hover { background:#d3ebfb; }
-  button.pick .n { display:inline-block; margin-left:6px; background:#fff;
-                   border-radius:999px; padding:0 7px; font-size:12px;
-                   color:var(--sky-deep); }
-  .funnel { display:flex; flex-wrap:wrap; gap:0; background:#fff;
-            border:1px solid var(--line); border-radius:12px; overflow:hidden;
-            margin-bottom:16px; }
-  .funnel div { flex:1 1 92px; padding:12px 14px; border-right:1px solid var(--line); }
+  .picks { margin-bottom:12px; }
+  button.pick { background:var(--panel-2); }
+  button.pick .n { display:inline-block; margin-left:8px; color:var(--dim); }
+
+  /* Funnel: the whole pipeline on one line, before anything else. */
+  .funnel { display:flex; flex-wrap:wrap; border:1px solid var(--line); border-radius:5px;
+            background:var(--panel); margin-bottom:28px; overflow:hidden; }
+  .funnel div { flex:1 1 104px; padding:15px 16px; border-right:1px solid var(--line-soft); }
   .funnel div:last-child { border-right:0; }
-  .funnel .n { display:block; font-size:21px; line-height:1.2; }
-  .funnel .k { font-size:12px; color:var(--muted); }
-  .funnel .lost .n { color:var(--muted); }
+  .funnel .n { display:block; font-size:26px; line-height:1.15; font-weight:500; }
+  .funnel .k { font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+               color:var(--dimmer); }
+  .funnel .lost .n { color:var(--dimmer); }
   .funnel .win .n { color:var(--pink); }
-  .progress { list-style:none; margin:14px 0 0; padding:0; font-size:13px; }
-  .prow { display:flex; gap:10px; align-items:baseline; padding:5px 0;
-          border-top:1px solid var(--line); }
-  .prow .pdom { font-weight:600; min-width:13em; }
-  .pstate.working { color:var(--sky-deep); }
-  .pstate.ok { color:var(--ok); font-weight:600; }
+
+  .progress { list-style:none; margin:16px 0 0; padding:0; font-size:12px; }
+  .prow { display:flex; gap:12px; align-items:baseline; padding:7px 0;
+          border-top:1px solid var(--line-soft); }
+  .prow .pdom { min-width:14em; color:var(--text); }
+  .pstate { letter-spacing:.08em; text-transform:uppercase; font-size:11px; }
+  .pstate.working { color:var(--sky); }
+  .pstate.ok { color:var(--ok); }
   .pstate.bad { color:var(--pink); }
+
+  @media (max-width:640px) {
+    .masthead h1 { font-size:26px; }
+    h2 { font-size:20px; }
+    .funnel div { flex:1 1 50%; }
+  }
 </style>
+
 </head>
 <body>
 <div class="masthead"><div class="wrap">
-<h1>Sprinto cold outreach</h1>
+<div class="mark">Sprinto</div>
+<h1>Cold outreach<span class="fade">domain to reply</span></h1>
 <p class="sub">Pick a list of domains, run the research, then read each draft and
 approve one at a time. Nothing is ever sent without an approval, and every approved
 email goes to <code>TO_EMAIL</code> and nowhere else.</p>
@@ -201,7 +234,7 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 
 <script id="demolist" type="application/json">{{ demo_domains|tojson }}</script>
 
-<h2>Needs you ({{ review|length }})</h2>
+<h2>Needs you <span class="c">{{ review|length }}</span></h2>
 {% if not review %}
 <p class="muted">No drafts waiting. Run a list of domains above.</p>
 {% else %}
@@ -325,7 +358,7 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </div>
 {% endfor %}
 
-<h2>In scheduling ({{ scheduling|length }})</h2>
+<h2>In scheduling <span class="c">{{ scheduling|length }}</span></h2>
 <div class="box">
 <table>
   <tr><th>Company</th><th>State</th><th>What they said</th></tr>
@@ -344,7 +377,7 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </table>
 </div>
 
-<h2>Not a fit ({{ drops|length }})</h2>
+<h2>Not a fit <span class="c">{{ drops|length }}</span></h2>
 <div class="box">
 <p class="muted" style="margin:0 0 10px">Judged and rejected, with the rule and the
   sentence that triggered it.</p>
@@ -361,7 +394,7 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </table>
 </div>
 
-<h2>Not researched ({{ unresearched|length }})</h2>
+<h2>Not researched <span class="c">{{ unresearched|length }}</span></h2>
 <div class="box">
 <p class="muted" style="margin:0 0 10px">Nothing was judged about these. Something
   failed before an answer existed, so they are worth running again.</p>
@@ -374,7 +407,7 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </table>
 </div>
 
-<h2>Decided ({{ decided|length }})</h2>
+<h2>Decided <span class="c">{{ decided|length }}</span></h2>
 <div class="box">
 <table>
   <tr><th>Company</th><th>You</th><th>Subject</th></tr>
@@ -392,7 +425,7 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </div>
 
 {% if to_schedule %}
-<h2>Interested ({{ to_schedule|length }})</h2>
+<h2>Interested <span class="c">{{ to_schedule|length }}</span></h2>
 <div class="box">
   <p class="muted" style="margin:0 0 10px">Sequence 1 stopped here. Starting scheduling
     checks the calendar and sends two or three times, then waits for a reply.</p>
