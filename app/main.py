@@ -97,6 +97,10 @@ def _row_to_card(row):
     hook = _loads(row["hook_json"], {})
     return {
         "id": row["id"],
+        "meeting_status": row["meeting_status"] or "",
+        "meeting_time": row["meeting_time"] or "",
+        "reply_status": row["reply_status"] or "",
+        "reply_quote": row["reply_quote"] or "",
         "domain": row["domain"],
         "company_name": row["company_name"] or row["domain"],
         "status": row["status"],
@@ -124,12 +128,24 @@ def _row_to_card(row):
 
 
 def _page_context(request, message="", error=""):
-    run_id = db.latest_run_id()
-    rows = db.companies_for_run(run_id) if run_id else []
-    cards = [_row_to_card(r) for r in rows]
-    review = [c for c in cards if c["status"] in ("queued", "approved", "rejected", "sent")]
-    review.sort(key=lambda c: (TIER_ORDER.get(c["tier"], 9), c["id"]))
-    drops = [c for c in cards if c["status"] in ("dropped", "failed", "error")]
+    cards = [_row_to_card(r) for r in db.all_companies()]
+
+    def of(*statuses):
+        return [c for c in cards if c["status"] in statuses]
+
+    # One row per company. Researching a domain again supersedes the earlier
+    # draft; showing both makes four companies look like seven decisions.
+    review, seen = [], set()
+    for card in of("queued"):          # already newest first
+        if card["domain"] in seen:
+            continue
+        seen.add(card["domain"])
+        review.append(card)
+    superseded = len(of("queued")) - len(review)
+    review.sort(key=lambda c: (TIER_ORDER.get(c["tier"], 9), -c["id"]))
+    scheduling = [c for c in cards if c["meeting_status"]]
+    scheduling.sort(key=lambda c: (c["meeting_status"] != "booked", -c["id"]))
+
     return {
         "request": request,
         "message": message,
@@ -140,9 +156,22 @@ def _page_context(request, message="", error=""):
              "quote": r["reply_quote"] or ""}
             for r in db.interested_not_scheduling()
         ],
-        "run_id": run_id,
         "review": review,
-        "drops": drops,
+        "superseded": superseded,
+        "decided": of("approved", "rejected", "sent"),
+        "scheduling": scheduling,
+        "drops": of("dropped"),
+        "unresearched": of("failed", "error"),
+        "funnel": {
+            "researched": len(cards),
+            "not_a_fit": len(of("dropped")),
+            "unresearched": len(of("failed", "error")),
+            "drafted": len([c for c in cards if c["subject"]]),
+            "sent": len(of("sent")),
+            "replied": len([c for c in cards if c["reply_status"]
+                            in ("interested", "not_interested")]),
+            "booked": len([c for c in cards if c["meeting_status"] == "booked"]),
+        },
         "cap": mailer.cap_state(),
         "max_domains": config.MAX_DOMAINS_PER_RUN,
         "missing_keys": config.missing_keys(REQUIRED_KEYS),
@@ -150,14 +179,9 @@ def _page_context(request, message="", error=""):
         "sent": [
             {
                 "sent_at": mailer.to_ist(r["sent_at"]),
-                "to_address": r["to_address"],
                 "domain": r["domain"],
                 "subject": r["subject"] or r["email_subject"],
-                "reply_status": r["reply_status"] or "no_reply",
-                "reply_quote": r["reply_quote"] or "",
-                "checked": mailer.to_ist(r["reply_checked_at"]),
-                "meeting_status": r["meeting_status"] or "",
-                "meeting_time": r["meeting_time"] or "",
+                "to_address": r["to_address"],
             }
             for r in db.sent_rows()
         ],

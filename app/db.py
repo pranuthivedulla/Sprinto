@@ -293,6 +293,18 @@ def get_company(company_id):
         ).fetchone()
 
 
+def all_companies(limit=300):
+    """Every company, newest first.
+
+    The page used to show one run. With the last run empty, an app holding ten
+    researched companies, four drafts and a booked meeting read as never used.
+    """
+    with connect() as conn:
+        return conn.execute(
+            _q("SELECT * FROM companies ORDER BY id DESC LIMIT ?"), (limit,)
+        ).fetchall()
+
+
 def companies_for_run(run_id):
     with connect() as conn:
         return conn.execute(

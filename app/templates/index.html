@@ -112,6 +112,15 @@
   button.pick .n { display:inline-block; margin-left:6px; background:#fff;
                    border-radius:999px; padding:0 7px; font-size:12px;
                    color:var(--sky-deep); }
+  .funnel { display:flex; flex-wrap:wrap; gap:0; background:#fff;
+            border:1px solid var(--line); border-radius:12px; overflow:hidden;
+            margin-bottom:16px; }
+  .funnel div { flex:1 1 92px; padding:12px 14px; border-right:1px solid var(--line); }
+  .funnel div:last-child { border-right:0; }
+  .funnel .n { display:block; font-size:21px; line-height:1.2; }
+  .funnel .k { font-size:12px; color:var(--muted); }
+  .funnel .lost .n { color:var(--muted); }
+  .funnel .win .n { color:var(--pink); }
   .progress { list-style:none; margin:14px 0 0; padding:0; font-size:13px; }
   .prow { display:flex; gap:10px; align-items:baseline; padding:5px 0;
           border-top:1px solid var(--line); }
@@ -136,6 +145,18 @@ email goes to <code>TO_EMAIL</code> and nowhere else.</p>
 {% if missing_keys %}
 <div class="note warn">Not set in <code>.env</code>: {{ missing_keys|join(', ') }}.
 Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
+{% endif %}
+
+{% if funnel.researched %}
+<div class="funnel">
+  <div><span class="n">{{ funnel.researched }}</span><span class="k">researched</span></div>
+  <div class="lost"><span class="n">{{ funnel.not_a_fit }}</span><span class="k">not a fit</span></div>
+  <div class="lost"><span class="n">{{ funnel.unresearched }}</span><span class="k">not researched</span></div>
+  <div><span class="n">{{ funnel.drafted }}</span><span class="k">drafted</span></div>
+  <div><span class="n">{{ funnel.sent }}</span><span class="k">sent</span></div>
+  <div><span class="n">{{ funnel.replied }}</span><span class="k">replied</span></div>
+  <div class="win"><span class="n">{{ funnel.booked }}</span><span class="k">booked</span></div>
+</div>
 {% endif %}
 
 <div class="box">
@@ -180,9 +201,11 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 
 <script id="demolist" type="application/json">{{ demo_domains|tojson }}</script>
 
-<h2>Review ({{ review|length }})</h2>
+<h2>Needs you ({{ review|length }})</h2>
 {% if not review %}
-<p class="muted">Nothing queued yet. Run a list of domains above.</p>
+<p class="muted">No drafts waiting. Run a list of domains above.</p>
+{% else %}
+<p class="muted">Highest priority first. Approving sends to <code>TO_EMAIL</code>.{% if superseded %} {{ superseded }} earlier draft{{ "s" if superseded > 1 }} for the same companies {{ "are" if superseded > 1 else "is" }} hidden.{% endif %}</p>
 {% endif %}
 
 {% for c in review %}
@@ -302,8 +325,29 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </div>
 {% endfor %}
 
-<h2>Dropped ({{ drops|length }})</h2>
+<h2>In scheduling ({{ scheduling|length }})</h2>
 <div class="box">
+<table>
+  <tr><th>Company</th><th>State</th><th>What they said</th></tr>
+  {% for c in scheduling %}
+  <tr>
+    <td>{{ c.company_name }}</td>
+    <td>
+      {% if c.meeting_status == 'booked' %}<span class="tier High">booked {{ c.meeting_time }}</span>
+      {% elif c.meeting_status == 'awaiting_reply' %}<span class="muted">times sent, waiting</span>
+      {% else %}<span class="tier Low">handed to you</span>{% endif %}
+    </td>
+    <td class="quote">{{ c.reply_quote }}</td>
+  </tr>
+  {% endfor %}
+  {% if not scheduling %}<tr><td colspan="3" class="muted">Nothing being scheduled.</td></tr>{% endif %}
+</table>
+</div>
+
+<h2>Not a fit ({{ drops|length }})</h2>
+<div class="box">
+<p class="muted" style="margin:0 0 10px">Judged and rejected, with the rule and the
+  sentence that triggered it.</p>
 <table>
   <tr><th>Domain</th><th>Rule</th><th>Quote that triggered it</th><th>Source</th></tr>
   {% for d in drops %}
@@ -313,7 +357,37 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
     <td>{% if d.drop_source and d.drop_source.startswith('http') %}<a href="{{ d.drop_source }}" rel="noreferrer">link</a>{% else %}{{ d.drop_source }}{% endif %}</td>
   </tr>
   {% endfor %}
-  {% if not drops %}<tr><td colspan="4" class="muted">Nothing dropped in this run.</td></tr>{% endif %}
+  {% if not drops %}<tr><td colspan="4" class="muted">Nothing rejected yet.</td></tr>{% endif %}
+</table>
+</div>
+
+<h2>Not researched ({{ unresearched|length }})</h2>
+<div class="box">
+<p class="muted" style="margin:0 0 10px">Nothing was judged about these. Something
+  failed before an answer existed, so they are worth running again.</p>
+<table>
+  <tr><th>Domain</th><th>What happened</th></tr>
+  {% for d in unresearched %}
+  <tr><td>{{ d.domain }}</td><td class="quote">{{ d.drop_quote }}</td></tr>
+  {% endfor %}
+  {% if not unresearched %}<tr><td colspan="2" class="muted">Nothing failed.</td></tr>{% endif %}
+</table>
+</div>
+
+<h2>Decided ({{ decided|length }})</h2>
+<div class="box">
+<table>
+  <tr><th>Company</th><th>You</th><th>Subject</th></tr>
+  {% for c in decided %}
+  <tr>
+    <td>{{ c.company_name }}</td>
+    <td>{% if c.status == 'sent' %}approved, sent {{ c.sent_at }}
+        {% elif c.status == 'rejected' %}rejected{% if c.reject_reason %} - {{ c.reject_reason }}{% endif %}
+        {% else %}{{ c.status }}{% endif %}</td>
+    <td>{{ c.subject }}</td>
+  </tr>
+  {% endfor %}
+  {% if not decided %}<tr><td colspan="3" class="muted">Nothing approved or rejected yet.</td></tr>{% endif %}
 </table>
 </div>
 

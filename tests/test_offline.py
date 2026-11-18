@@ -416,15 +416,27 @@ print("review page")
 from app import main  # noqa: E402
 
 
-card = main._row_to_card(row)
-drop_card = main._row_to_card(drop_row)
-html = main.templates.get_template("index.html").render(
-    request=None, message="", error="", run_id=run_id,
-    review=[card], drops=[drop_card], cap=mailer.cap_state(),
-    missing_keys=[], missing_send_keys=[], sent=[],
-    demo_domains={"Healthtech": ["a.com", "b.com"]},
-    max_domains=config.MAX_DOMAINS_PER_RUN,
-)
+# Render with the context the app actually builds, not a hand-written one: a
+# hand-written context drifts the moment the template needs a new key, and the
+# template is then only tested against a shape nothing produces.
+class _Req:
+    pass
+
+
+_ctx = main._page_context(_Req())
+html = main.templates.get_template("index.html").render(**_ctx)
+check("the page renders from the real context", len(html) > 2000)
+check("every company is loaded, not just the last run",
+      _ctx["funnel"]["researched"] >= len(_ctx["review"]))
+check("the funnel counts what was rejected separately from what failed",
+      "not_a_fit" in _ctx["funnel"] and "unresearched" in _ctx["funnel"])
+check("a company appears once in the action list",
+      len({c["domain"] for c in _ctx["review"]}) == len(_ctx["review"]))
+check("rejected and not-researched are different lists",
+      all(c["status"] == "dropped" for c in _ctx["drops"])
+      and all(c["status"] in ("failed", "error") for c in _ctx["unresearched"]))
+card = _ctx["review"][0] if _ctx["review"] else main._row_to_card(row)
+drop_card = _ctx["drops"][0] if _ctx["drops"] else main._row_to_card(drop_row)
 check("the card shows the company", "Acme Pay" in html)
 check("the page offers a one-click list button",
       'data-pick="Healthtech"' in html and ">Healthtech" in html)
@@ -435,7 +447,7 @@ check("the card shows the tier", ">MEDIUM<" in html.upper().replace(" ", "")
 check("the card shows the draft subject", card["subject"] in html)
 check("the card shows why this person", "Why this person" in html)
 check("the card shows the contact reason", "Head of Security" in html)
-check("the drop log shows the rule", qualify.HARD_FILTERS[0] in html)
+check("the drop log shows the rule", drop_card["drop_rule"] in html)
 check("approve, save and reject are all offered",
       "Approve and send" in html and "Save edit" in html and ">Reject<" in html)
 
@@ -568,9 +580,9 @@ check("but it still goes to TO_EMAIL", _plain["To"] == "me@example.com")
 check("the card shows who the draft is addressed to", "Addressed to:" in html)
 _blank = main._row_to_card(db.get_company(_no_contact))
 _html2 = main.templates.get_template("index.html").render(
-    request=None, message="", error="", run_id=run_id, review=[_blank], drops=[],
-    cap=mailer.cap_state(), missing_keys=[], missing_send_keys=[], sent=[],
-    demo_domains={}, max_domains=config.MAX_DOMAINS_PER_RUN)
+    **{**main._page_context(_Req()), "review": [_blank], "drops": [],
+       "decided": [], "scheduling": [], "unresearched": [], "to_schedule": [],
+       "sent": []})
 check("with no contact the card says nothing about one", "Addressed to:" not in _html2)
 
 # --- cleaning vectors, the ones the chip input mirrors -----------------------
