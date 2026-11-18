@@ -451,3 +451,51 @@ kept passing against the old one forever. Same fault as the stub checks in Decis
 
 227 checks pass. Nothing was added to the pipeline here; what changed is which of
 its records reach the screen.
+
+## Decision 26 (approved)
+Monospace on black, and one stage of the pipeline per tab.
+
+The look is taken from codapress.co.uk, named as the reference. Its computed
+styles were read rather than guessed at: JetBrains Mono for body text and
+headings alike, pure black, 1px hairlines, square uppercase buttons, a 5px radius
+on panels only, headings at weight 400 with leading tighter than the type size.
+
+One thing was not copied. That site is a brochure and has nothing to signal; this
+page has seven statuses and a queue to triage, so pure monochrome would flatten
+the thing the page exists to show. Colour is now a signal rather than a theme:
+pink appears on HIGH, booked, check flags and Reject, and nowhere else, and white
+is the button that acts. The sky-blue and white theme is gone. Two pink marks
+appear on the first screen and both are things worth looking at.
+
+The fonts load from Google Fonts. Blocked, the page falls back to Courier New,
+which keeps the shape and loses the refinement.
+
+Then the layout, because the page was one column about ten thousand pixels tall
+and every section sat below the last. Six stages now sit behind a sticky tab bar
+- Run, Needs you, Scheduling, Sent, Decided, Dropped, and Interested when there
+is anyone to schedule. Every panel stays in the DOM and is only hidden, so
+find-in-page still reaches all of it; the tab is kept in the URL hash, and the
+default is Needs you when a queue exists and Run when it does not.
+
+What used to stack now sits side by side. A review card is the draft on the left
+and its evidence on the right, with the stored fields spanning underneath. Not a
+fit and Not researched share the Dropped tab as two tables rather than two
+screens, which keeps the distinction Decision 25 drew while halving its cost.
+Domain entry sits beside the daily cap and the run limits. The signals in a card
+became a list rather than a three-column table, because that table does not
+survive a half-width column.
+
+Measured, not estimated: the masthead went 273px to 162px, every tab except the
+queue is now under a thousand pixels, and the queue is 4404px for five companies
+- scrolling through drafts is the one place scrolling is the point.
+
+Found while rewriting the Sent table: its Reply column had never worked. The
+`sent` rows carry only time, domain, subject and address, so `s.reply_status` was
+always undefined and every row printed "no reply", including for the company that
+had replied and booked a meeting. The funnel line one screen above said 1 replied
+at the same moment. The column is gone; reply state lives on the Interested and
+Scheduling tabs, which read from the company row. Same fault as Decision 24's
+mislabelled drop reason: a confident wrong statement sitting beside correct data.
+
+227 checks pass unchanged. No test needed editing, because they assert on text
+the page shows rather than on where it sits.

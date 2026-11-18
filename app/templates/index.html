@@ -24,14 +24,17 @@
   .wrap { max-width:1040px; margin:0 auto; padding:0 24px; }
 
   /* Masthead: the hero idea, shrunk. Two lines, the second one receding. */
-  .masthead { border-bottom:1px solid var(--line); padding:44px 0 32px;
-              margin-bottom:36px;
+  .masthead { border-bottom:1px solid var(--line); padding:30px 0 26px;
+              margin-bottom:26px;
               background:radial-gradient(120% 140% at 15% 0%, #1c1c1c 0%, #000 62%); }
   .masthead h1 { font-size:36px; line-height:1.02; font-weight:400; margin:0;
                  letter-spacing:-.01em; text-transform:uppercase; }
   .masthead h1 .fade { display:block; color:var(--dimmer); }
-  .masthead .sub { color:var(--dim); margin:18px 0 0; max-width:74ch;
-                   font-size:13px; line-height:1.7; }
+  .masthead .wrap { display:flex; gap:48px; align-items:flex-end;
+                    justify-content:space-between; flex-wrap:wrap; }
+  .masthead .sub { color:var(--dim); margin:0; max-width:52ch;
+                   font-size:12px; line-height:1.7; }
+  .masthead .mark { margin-bottom:14px; }
   .mark { display:inline-flex; align-items:center; gap:9px; margin-bottom:20px;
           font-size:11px; letter-spacing:.22em; text-transform:uppercase;
           color:var(--dim); }
@@ -159,13 +162,55 @@
     h2 { font-size:20px; }
     .funnel div { flex:1 1 50%; }
   }
-</style>
 
+  /* Tabs: one stage at a time, so reaching the sixth section is a click and
+     not a scroll. Every panel stays in the DOM, so find-in-page still works. */
+  .tabs { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+          border:1px solid var(--line); border-radius:5px; overflow:hidden;
+          background:#060606; margin-bottom:22px; }
+  .tab { border:0; border-right:1px solid var(--line-soft); background:transparent;
+         color:var(--dim); padding:14px 18px; }
+  .tab:last-child { border-right:0; }
+  .tab:hover { background:var(--panel-2); color:var(--text); }
+  .tab[aria-current="true"] { background:var(--text); color:#000; font-weight:700; }
+  .tab .c { margin-left:8px; opacity:.65; }
+  .panel[hidden] { display:none; }
+
+  .k { font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+       color:var(--dimmer); }
+  .sideline { margin:0 0 10px; font-size:13px; color:var(--dim); }
+  .sideline .k { display:block; margin-bottom:2px; }
+
+  /* The review card reads across, not down: the draft beside its evidence. */
+  .card { display:grid; gap:14px 30px; align-items:start;
+          grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); }
+  .card .chead, .card .full { grid-column:1 / -1; }
+  .card .chead { border-bottom:1px solid var(--line-soft); padding-bottom:13px; }
+  .card .cwhy { border-left:1px solid var(--line-soft); padding-left:24px; }
+  .ev { list-style:none; margin:0 0 14px; padding:0; font-size:13px; }
+  .ev li { border-top:1px solid var(--line-soft); padding:8px 0; }
+  .ev li:first-child { border-top:0; }
+  .ev .evlabel { display:block; color:var(--text); font-size:12px; }
+  .ev .evmeta { display:block; font-size:11px; color:var(--dimmer); }
+
+  .runcols { display:grid; gap:14px 30px; align-items:start;
+             grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); }
+  .runside { border-left:1px solid var(--line-soft); padding-left:24px; }
+  .cols { display:grid; gap:14px; grid-template-columns:1fr 1fr; align-items:start; }
+
+  @media (max-width:900px) {
+    .card, .runcols, .cols { grid-template-columns:minmax(0,1fr); }
+    .card .cwhy, .runside { border-left:0; padding-left:0;
+                            border-top:1px solid var(--line-soft); padding-top:16px; }
+  }
+</style>
 </head>
 <body>
 <div class="masthead"><div class="wrap">
+<div>
 <div class="mark">Sprinto</div>
 <h1>Cold outreach<span class="fade">domain to reply</span></h1>
+</div>
 <p class="sub">Pick a list of domains, run the research, then read each draft and
 approve one at a time. Nothing is ever sent without an approval, and every approved
 email goes to <code>TO_EMAIL</code> and nowhere else.</p>
@@ -192,173 +237,223 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
 </div>
 {% endif %}
 
-<div class="box">
-  <label for="chipinput">Domains to research</label>
-  <p class="muted" style="margin:0 0 8px">Click a list below to fill this in, or type
-    a domain and press Enter. Up to {{ max_domains }} per run.</p>
-
-  {% if demo_domains %}
-  <div class="row picks">
-    <span class="muted">Start from a list:</span>
-    {% for label, domains in demo_domains.items() %}
-    <button type="button" class="pick" data-pick="{{ label }}">{{ label }}
-      <span class="n">{{ domains|length }}</span></button>
-    {% endfor %}
-  </div>
+<nav class="tabs" id="tabs" data-default="{{ 'review' if review else 'run' }}">
+  <button type="button" class="tab" data-tab="run">Run</button>
+  <button type="button" class="tab" data-tab="review">Needs you
+    <span class="c">{{ review|length }}</span></button>
+  {% if to_schedule %}
+  <button type="button" class="tab" data-tab="interested">Interested
+    <span class="c">{{ to_schedule|length }}</span></button>
   {% endif %}
+  <button type="button" class="tab" data-tab="scheduling">Scheduling
+    <span class="c">{{ scheduling|length }}</span></button>
+  <button type="button" class="tab" data-tab="sent">Sent
+    <span class="c">{{ sent|length }}</span></button>
+  <button type="button" class="tab" data-tab="decided">Decided
+    <span class="c">{{ decided|length }}</span></button>
+  <button type="button" class="tab" data-tab="dropped">Dropped
+    <span class="c">{{ drops|length + unresearched|length }}</span></button>
+</nav>
 
-  <div class="chipbox" id="chipbox">
-    <ul class="chips" id="chips" aria-label="Domains in this run"></ul>
-    <input type="text" id="chipinput" autocomplete="off" spellcheck="false"
-           placeholder="acme.com" aria-describedby="chipcount">
-  </div>
+<section class="panel" data-panel="run" hidden>
+<div class="box">
+  <div class="runcols">
+    <div>
+      <label for="chipinput">Domains to research</label>
+      <p class="muted" style="margin:0 0 10px">Click a list to fill this in, or type
+        a domain and press Enter. Up to {{ max_domains }} per run.</p>
 
-  <div class="row" style="margin-top:8px">
-    <span class="muted" id="chipcount" role="status" aria-live="polite">No companies yet</span>
-    <span style="flex:1"></span>
-    <button type="button" id="clearall">Clear all</button>
-  </div>
+      {% if demo_domains %}
+      <div class="row picks">
+        {% for label, domains in demo_domains.items() %}
+        <button type="button" class="pick" data-pick="{{ label }}">{{ label }}
+          <span class="n">{{ domains|length }}</span></button>
+        {% endfor %}
+      </div>
+      {% endif %}
 
-  <div class="row" style="margin-top:12px">
-    <button class="primary" type="button" id="runbtn" data-max="{{ max_domains }}" disabled>Run</button>
-    <span class="muted">Sent today: {{ cap.used }} of {{ cap.cap }}
-      ({{ cap.left }} left under the daily cap)</span>
-  </div>
+      <div class="chipbox" id="chipbox">
+        <ul class="chips" id="chips" aria-label="Domains in this run"></ul>
+        <input type="text" id="chipinput" autocomplete="off" spellcheck="false"
+               placeholder="acme.com" aria-describedby="chipcount">
+      </div>
 
-  <ul class="progress" id="progress"></ul>
-  <div class="row" id="donerow" style="margin-top:10px; display:none">
-    <button class="primary" type="button" id="showresults">Show the drafts</button>
-    <span class="muted">Your run is saved. This opens the review list below.</span>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" type="button" id="runbtn" data-max="{{ max_domains }}" disabled>Run</button>
+        <button type="button" id="clearall">Clear all</button>
+        <span class="muted" id="chipcount" role="status" aria-live="polite">No domains yet</span>
+      </div>
+    </div>
+
+    <aside class="runside">
+      <p class="sideline"><span class="k">Daily cap</span>
+        {{ cap.used }} of {{ cap.cap }} sent, {{ cap.left }} left</p>
+      <p class="sideline"><span class="k">Per run</span> up to {{ max_domains }} domains</p>
+      <p class="sideline"><span class="k">Every send goes to</span> <code>TO_EMAIL</code></p>
+      <ul class="progress" id="progress"></ul>
+      <div id="donerow" style="margin-top:12px; display:none">
+        <button class="primary" type="button" id="showresults">Show the drafts</button>
+      </div>
+    </aside>
   </div>
 </div>
+</section>
 
 <script id="demolist" type="application/json">{{ demo_domains|tojson }}</script>
 
-<h2>Needs you <span class="c">{{ review|length }}</span></h2>
+<section class="panel" data-panel="review" hidden>
 {% if not review %}
-<p class="muted">No drafts waiting. Run a list of domains above.</p>
+<p class="muted">No drafts waiting. Run a list of domains on the Run tab.</p>
 {% else %}
 <p class="muted">Highest priority first. Approving sends to <code>TO_EMAIL</code>.{% if superseded %} {{ superseded }} earlier draft{{ "s" if superseded > 1 }} for the same companies {{ "are" if superseded > 1 else "is" }} hidden.{% endif %}</p>
 {% endif %}
 
 {% for c in review %}
-<div class="box">
-  <div class="row" style="justify-content:space-between">
-    <div>
-      <span class="tier {{ c.tier }}">{{ c.tier or c.status }}</span>
-      <strong style="margin-left:8px">{{ c.company_name }}</strong>
-      <span class="muted">{{ c.domain }}</span>
+<div class="box card">
+  <div class="chead">
+    <div class="row" style="justify-content:space-between">
+      <div class="row" style="gap:10px">
+        <span class="tier {{ c.tier }}">{{ c.tier or c.status }}</span>
+        <strong>{{ c.company_name }}</strong>
+        <span class="muted">{{ c.domain }}</span>
+      </div>
+      <span class="muted">
+        {% if c.status == 'sent' %}sent {{ c.sent_at }}
+        {% elif c.status == 'rejected' %}rejected
+        {% else %}awaiting your decision{% endif %}
+      </span>
     </div>
-    <span class="muted">
-      {% if c.status == 'sent' %}sent {{ c.sent_at }}
-      {% elif c.status == 'rejected' %}rejected
-      {% else %}awaiting your decision{% endif %}
-    </span>
   </div>
 
-  <ul class="flags">
-    {% for f in c.flags %}<li>{{ f }}</li>{% endfor %}
-    {% for f in c.check_flags %}<li class="check">check: {{ f }}</li>{% endfor %}
-    {% if not c.flags and not c.check_flags %}<li class="clear">no flags</li>{% endif %}
-  </ul>
-
-  {% if c.status in ('queued', 'rejected') %}
-  <form method="post" action="/approve">
-    <input type="hidden" name="company_id" value="{{ c.id }}">
-    {% if c.poc_email %}
-    <p class="muted"><strong>Addressed to:</strong> {{ c.poc_name }}, {{ c.poc_title }}
-      &lt;{{ c.poc_email }}&gt; &mdash; the email is delivered to <code>TO_EMAIL</code>, not to them.</p>
+  <div class="cdraft">
+    {% if c.status in ('queued', 'rejected') %}
+    <form method="post" action="/approve">
+      <input type="hidden" name="company_id" value="{{ c.id }}">
+      {% if c.poc_email %}
+      <p class="muted"><strong>Addressed to:</strong> {{ c.poc_name }}, {{ c.poc_title }}
+        &lt;{{ c.poc_email }}&gt; &mdash; delivered to <code>TO_EMAIL</code>, not to them.</p>
+      {% endif %}
+      <label>Subject</label>
+      <input type="text" name="subject" value="{{ c.subject }}">
+      <label>Body ({{ c.body.split()|length }} words)</label>
+      <textarea name="body" rows="10">{{ c.body }}</textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" type="submit">Approve and send</button>
+        <button type="submit" formaction="/save">Save edit</button>
+      </div>
+    </form>
+    <form method="post" action="/reject" class="row" style="margin-top:10px">
+      <input type="hidden" name="company_id" value="{{ c.id }}">
+      <input type="text" name="reason" placeholder="Reject reason (logged)"
+             style="flex:1 1 200px">
+      <button class="danger" type="submit">Reject</button>
+    </form>
+    {% else %}
+    {% if c.poc_email %}<p class="muted"><strong>Addressed to:</strong> {{ c.poc_name }}, {{ c.poc_title }} &lt;{{ c.poc_email }}&gt;</p>{% endif %}
+    <p><strong>{{ c.subject }}</strong></p>
+    <p style="white-space:pre-wrap">{{ c.body }}</p>
     {% endif %}
-    <label>Subject</label>
-    <input type="text" name="subject" value="{{ c.subject }}">
-    <label>Body ({{ c.body.split()|length }} words)</label>
-    <textarea name="body" rows="9">{{ c.body }}</textarea>
-    <div class="row" style="margin-top:10px">
-      <button class="primary" type="submit">Approve and send</button>
-      <button type="submit" formaction="/save">Save edit</button>
-    </div>
-  </form>
-  <form method="post" action="/reject" class="row" style="margin-top:8px">
-    <input type="hidden" name="company_id" value="{{ c.id }}">
-    <input type="text" name="reason" placeholder="Reject reason (logged)"
-           style="flex:1 1 240px">
-    <button class="danger" type="submit">Reject</button>
-  </form>
-  {% else %}
-  {% if c.poc_email %}<p class="muted"><strong>Addressed to:</strong> {{ c.poc_name }}, {{ c.poc_title }} &lt;{{ c.poc_email }}&gt;</p>{% endif %}
-  <p><strong>{{ c.subject }}</strong></p>
-  <p style="white-space:pre-wrap">{{ c.body }}</p>
-  {% endif %}
+    {% if c.reject_reason %}<p class="muted">Reject reason: {{ c.reject_reason }}</p>{% endif %}
+  </div>
 
-  {% if c.reject_reason %}<p class="muted">Reject reason: {{ c.reject_reason }}</p>{% endif %}
+  <div class="cwhy">
+    <ul class="flags">
+      {% for f in c.flags %}<li>{{ f }}</li>{% endfor %}
+      {% for f in c.check_flags %}<li class="check">check: {{ f }}</li>{% endfor %}
+      {% if not c.flags and not c.check_flags %}<li class="clear">no flags</li>{% endif %}
+    </ul>
 
-  <details open>
-    <summary>Why this company qualified</summary>
-    <p class="muted">{{ c.audit_verdict }}</p>
-    <table>
-      <tr><th>Signal</th><th>Evidence</th><th>Source</th></tr>
+    <p class="sideline" style="margin-top:14px"><span class="k">Verdict</span>
+      {{ c.audit_verdict }}</p>
+
+    <p class="k" style="margin:16px 0 6px">Evidence</p>
+    <ul class="ev">
       {% for s in c.signals %}
-      <tr>
-        <td>{{ s.label }}{% if s.never_in_email %} <em>(never in the email)</em>{% endif %}</td>
-        <td class="quote">{{ s.quote }}{% if s.date %} ({{ s.date }}){% endif %}</td>
-        <td>{% if s.source %}<a href="{{ s.source }}" rel="noreferrer">source</a>{% else %}-{% endif %}</td>
-      </tr>
+      <li>
+        <span class="evlabel">{{ s.label }}{% if s.never_in_email %} (never in the email){% endif %}</span>
+        <span class="quote">{{ s.quote }}</span>
+        <span class="evmeta">{% if s.date %}{{ s.date }}{% endif %}
+          {% if s.source %}<a href="{{ s.source }}" rel="noreferrer">source</a>{% endif %}</span>
+      </li>
       {% endfor %}
-      {% if not c.signals %}<tr><td colspan="3" class="muted">No intent signal found. Passes the filters only.</td></tr>{% endif %}
-    </table>
-    <p class="muted" style="margin-top:8px">Hook used in the email:
+      {% if not c.signals %}<li class="muted">No intent signal found. Passes the filters only.</li>{% endif %}
+    </ul>
+
+    <p class="sideline"><span class="k">Hook used</span>
       <span class="quote">{{ c.hook.quote or c.hook.text }}</span>
-      {% if c.hook.source %} - <a href="{{ c.hook.source }}" rel="noreferrer">source</a>{% endif %}
+      {% if c.hook.source %}<a href="{{ c.hook.source }}" rel="noreferrer">source</a>{% endif %}
     </p>
-  </details>
 
-  <details>
-    <summary>Why this person</summary>
-    <p>{{ c.poc_name }} - {{ c.poc_title }} - {{ c.poc_email }}
-      {% if c.poc_confidence %}<span class="muted">(Hunter confidence {{ c.poc_confidence }})</span>{% endif %}</p>
-    <p class="muted">{{ c.poc_reason }}</p>
-    {% if c.pains %}
-    <p class="muted">Pain points written for this role:</p>
-    <ul class="muted">{% for p in c.pains %}<li>{{ p }}</li>{% endfor %}</ul>
-    {% endif %}
-  </details>
+    <details>
+      <summary>Why this person</summary>
+      <p>{{ c.poc_name }} - {{ c.poc_title }} - {{ c.poc_email }}
+        {% if c.poc_confidence %}<span class="muted">(Hunter confidence {{ c.poc_confidence }})</span>{% endif %}</p>
+      <p class="muted">{{ c.poc_reason }}</p>
+      {% if c.pains %}
+      <p class="muted">Pain points written for this role:</p>
+      <ul class="muted">{% for p in c.pains %}<li>{{ p }}</li>{% endfor %}</ul>
+      {% endif %}
+    </details>
+  </div>
 
-  <details>
-    <summary>Stored fields and quotes</summary>
-    <table>
-      <tr><th>Field</th><th>Value</th><th>Quote</th><th>Source</th><th>Quote found in page text</th></tr>
-      {% for key, f in c.fields.items() %}
-        {% if f is mapping and f.get('value') is defined %}
-        <tr>
-          <td>{{ key }}</td><td>{{ f.value }}</td>
-          <td class="quote">{{ f.quote }}</td>
-          <td>{% if f.source %}<a href="{{ f.source }}" rel="noreferrer">link</a>{% else %}-{% endif %}</td>
-          <td>{{ 'yes' if f.verified else 'no' }}</td>
-        </tr>
-        {% endif %}
-      {% endfor %}
-      {% for cert in c.fields.get('certifications', []) %}
-        <tr>
-          <td>certification</td><td>{{ cert.framework }} - {{ cert.status }}</td>
-          <td class="quote">{{ cert.quote }}</td>
-          <td>{% if cert.source %}<a href="{{ cert.source }}" rel="noreferrer">link</a>{% else %}-{% endif %}</td>
-          <td>{{ 'yes' if cert.verified else 'no' }}</td>
-        </tr>
-      {% endfor %}
-    </table>
-    {% if c.fields.get('_pages') %}
-    <p class="muted" style="margin-top:8px">Pages read:
-      {% for kind, p in c.fields['_pages'].items() %}{{ kind }} ({{ p.status }}){% if not loop.last %}, {% endif %}{% endfor %}
-    </p>
-    {% endif %}
-    {% if c.fields.get('_loop') %}
-    <p class="muted">Agent loop: {{ c.fields['_loop']|join(' | ') }}</p>
-    {% endif %}
-  </details>
+  <div class="full">
+    <details>
+      <summary>Stored fields and quotes</summary>
+      <table>
+        <tr><th>Field</th><th>Value</th><th>Quote</th><th>Source</th><th>Quote found in page text</th></tr>
+        {% for key, f in c.fields.items() %}
+          {% if f is mapping and f.get('value') is defined %}
+          <tr>
+            <td>{{ key }}</td><td>{{ f.value }}</td>
+            <td class="quote">{{ f.quote }}</td>
+            <td>{% if f.source %}<a href="{{ f.source }}" rel="noreferrer">link</a>{% else %}-{% endif %}</td>
+            <td>{{ 'yes' if f.verified else 'no' }}</td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+        {% for cert in c.fields.get('certifications', []) %}
+          <tr>
+            <td>certification</td><td>{{ cert.framework }} - {{ cert.status }}</td>
+            <td class="quote">{{ cert.quote }}</td>
+            <td>{% if cert.source %}<a href="{{ cert.source }}" rel="noreferrer">link</a>{% else %}-{% endif %}</td>
+            <td>{{ 'yes' if cert.verified else 'no' }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+      {% if c.fields.get('_pages') %}
+      <p class="muted" style="margin-top:8px">Pages read:
+        {% for kind, p in c.fields['_pages'].items() %}{{ kind }} ({{ p.status }}){% if not loop.last %}, {% endif %}{% endfor %}
+      </p>
+      {% endif %}
+      {% if c.fields.get('_loop') %}
+      <p class="muted">Agent loop: {{ c.fields['_loop']|join(' | ') }}</p>
+      {% endif %}
+    </details>
+  </div>
 </div>
 {% endfor %}
+</section>
 
-<h2>In scheduling <span class="c">{{ scheduling|length }}</span></h2>
+{% if to_schedule %}
+<section class="panel" data-panel="interested" hidden>
+<div class="box">
+  <p class="muted" style="margin:0 0 12px">Sequence 1 stopped here. Starting scheduling
+    checks the calendar and sends two or three times, then waits for a reply.</p>
+  {% for c in to_schedule %}
+  <div class="row" style="padding:9px 0; border-top:1px solid var(--line-soft)">
+    <strong style="min-width:12em">{{ c.name }}</strong>
+    <span class="quote" style="flex:1 1 260px">{{ c.quote }}</span>
+    <form method="post" action="/start-scheduling">
+      <input type="hidden" name="company_id" value="{{ c.id }}">
+      <button class="primary" type="submit">Start scheduling</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+</section>
+{% endif %}
+
+<section class="panel" data-panel="scheduling" hidden>
 <div class="box">
 <table>
   <tr><th>Company</th><th>State</th><th>What they said</th></tr>
@@ -376,38 +471,29 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
   {% if not scheduling %}<tr><td colspan="3" class="muted">Nothing being scheduled.</td></tr>{% endif %}
 </table>
 </div>
+</section>
 
-<h2>Not a fit <span class="c">{{ drops|length }}</span></h2>
+<section class="panel" data-panel="sent" hidden>
 <div class="box">
-<p class="muted" style="margin:0 0 10px">Judged and rejected, with the rule and the
-  sentence that triggered it.</p>
+  <div class="row" style="margin-bottom:14px">
+    <form method="post" action="/check-replies">
+      <button type="submit">Check replies</button>
+    </form>
+    <span class="muted">Reads the sending account's inbox and sets each company to
+      interested, not interested or no reply. What came back shows on the Interested
+      and Scheduling tabs.</span>
+  </div>
 <table>
-  <tr><th>Domain</th><th>Rule</th><th>Quote that triggered it</th><th>Source</th></tr>
-  {% for d in drops %}
-  <tr>
-    <td>{{ d.domain }}</td><td>{{ d.drop_rule }}</td>
-    <td class="quote">{{ d.drop_quote }}</td>
-    <td>{% if d.drop_source and d.drop_source.startswith('http') %}<a href="{{ d.drop_source }}" rel="noreferrer">link</a>{% else %}{{ d.drop_source }}{% endif %}</td>
-  </tr>
+  <tr><th>When</th><th>Domain</th><th>Subject</th></tr>
+  {% for s in sent %}
+  <tr><td>{{ s.sent_at }}</td><td>{{ s.domain }}</td><td>{{ s.subject }}</td></tr>
   {% endfor %}
-  {% if not drops %}<tr><td colspan="4" class="muted">Nothing rejected yet.</td></tr>{% endif %}
+  {% if not sent %}<tr><td colspan="3" class="muted">Nothing sent yet.</td></tr>{% endif %}
 </table>
 </div>
+</section>
 
-<h2>Not researched <span class="c">{{ unresearched|length }}</span></h2>
-<div class="box">
-<p class="muted" style="margin:0 0 10px">Nothing was judged about these. Something
-  failed before an answer existed, so they are worth running again.</p>
-<table>
-  <tr><th>Domain</th><th>What happened</th></tr>
-  {% for d in unresearched %}
-  <tr><td>{{ d.domain }}</td><td class="quote">{{ d.drop_quote }}</td></tr>
-  {% endfor %}
-  {% if not unresearched %}<tr><td colspan="2" class="muted">Nothing failed.</td></tr>{% endif %}
-</table>
-</div>
-
-<h2>Decided <span class="c">{{ decided|length }}</span></h2>
+<section class="panel" data-panel="decided" hidden>
 <div class="box">
 <table>
   <tr><th>Company</th><th>You</th><th>Subject</th></tr>
@@ -423,57 +509,42 @@ Copy <code>.env.example</code> to <code>.env</code> and fill these in.</div>
   {% if not decided %}<tr><td colspan="3" class="muted">Nothing approved or rejected yet.</td></tr>{% endif %}
 </table>
 </div>
+</section>
 
-{% if to_schedule %}
-<h2>Interested <span class="c">{{ to_schedule|length }}</span></h2>
-<div class="box">
-  <p class="muted" style="margin:0 0 10px">Sequence 1 stopped here. Starting scheduling
-    checks the calendar and sends two or three times, then waits for a reply.</p>
-  {% for c in to_schedule %}
-  <div class="row" style="padding:7px 0; border-top:1px solid var(--line)">
-    <strong style="min-width:12em">{{ c.name }}</strong>
-    <span class="quote" style="flex:1">{{ c.quote }}</span>
-    <form method="post" action="/start-scheduling">
-      <input type="hidden" name="company_id" value="{{ c.id }}">
-      <button class="primary" type="submit">Start scheduling</button>
-    </form>
+<section class="panel" data-panel="dropped" hidden>
+<div class="cols">
+  <div class="box">
+    <p class="k">Not a fit <span class="c">{{ drops|length }}</span></p>
+    <p class="muted" style="margin:6px 0 12px">Judged and rejected, with the rule and
+      the sentence that triggered it.</p>
+    <table>
+      <tr><th>Domain</th><th>Rule</th><th>Quote</th></tr>
+      {% for d in drops %}
+      <tr>
+        <td>{{ d.domain }}</td><td>{{ d.drop_rule }}</td>
+        <td class="quote">{{ d.drop_quote }}
+          {% if d.drop_source and d.drop_source.startswith('http') %}
+          <a href="{{ d.drop_source }}" rel="noreferrer">link</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      {% if not drops %}<tr><td colspan="3" class="muted">Nothing rejected yet.</td></tr>{% endif %}
+    </table>
   </div>
-  {% endfor %}
-</div>
-{% endif %}
 
-<h2>Sent</h2>
-<div class="box">
-  <div class="row" style="margin-bottom:12px">
-    <form method="post" action="/check-replies">
-      <button type="submit">Check replies</button>
-    </form>
-    <span class="muted">Reads the sending account's inbox and sets each one to
-      interested, not interested or no reply. Scheduling is a separate build.</span>
+  <div class="box">
+    <p class="k">Not researched <span class="c">{{ unresearched|length }}</span></p>
+    <p class="muted" style="margin:6px 0 12px">Nothing was judged about these. Something
+      failed before an answer existed, so they are worth running again.</p>
+    <table>
+      <tr><th>Domain</th><th>What happened</th></tr>
+      {% for d in unresearched %}
+      <tr><td>{{ d.domain }}</td><td class="quote">{{ d.drop_quote }}</td></tr>
+      {% endfor %}
+      {% if not unresearched %}<tr><td colspan="2" class="muted">Nothing failed.</td></tr>{% endif %}
+    </table>
   </div>
-<table>
-  <tr><th>When</th><th>Domain</th><th>Subject</th><th>Reply</th></tr>
-  {% for s in sent %}
-  <tr>
-    <td>{{ s.sent_at }}</td><td>{{ s.domain }}</td><td>{{ s.subject }}</td>
-    <td>
-      {% if s.reply_status == 'interested' %}<span class="tier High">interested</span>
-      {% elif s.reply_status == 'not_interested' %}<span class="muted">not interested</span>
-      {% else %}<span class="muted">no reply{% if s.checked %}, checked {{ s.checked }}{% endif %}</span>{% endif %}
-      {% if s.reply_quote %}<div class="quote">{{ s.reply_quote }}</div>{% endif %}
-      {% if s.meeting_status == 'booked' %}
-        <div><span class="tier Medium">meeting {{ s.meeting_time }}</span></div>
-      {% elif s.meeting_status == 'awaiting_reply' %}
-        <div class="muted">times proposed, waiting</div>
-      {% elif s.meeting_status == 'escalated' %}
-        <div><span class="tier Low">handed to you</span></div>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-  {% if not sent %}<tr><td colspan="4" class="muted">Nothing sent yet.</td></tr>{% endif %}
-</table>
 </div>
+</section>
 
 </div>
 <script>
@@ -640,8 +711,27 @@ runBtn.addEventListener("click", async () => {
   doneRow.style.display = "";
 });
 
-document.getElementById("showresults").addEventListener("click", () => { location.href = "/"; });
+document.getElementById("showresults").addEventListener("click", () => { location.href = "/#review"; });
 render();
+
+// Tabs. Every panel stays in the DOM, so find-in-page still reaches all of it.
+const tabsNav = document.getElementById("tabs");
+const panels = Array.from(document.querySelectorAll(".panel"));
+
+function showTab(name) {
+  const known = panels.some(p => p.dataset.panel === name);
+  const pick = known ? name : (tabsNav.dataset.default || "run");
+  panels.forEach(p => { p.hidden = p.dataset.panel !== pick; });
+  tabsNav.querySelectorAll(".tab").forEach(b => {
+    b.setAttribute("aria-current", b.dataset.tab === pick ? "true" : "false");
+  });
+  try { history.replaceState(null, "", "#" + pick); } catch (e) { /* file:// */ }
+}
+
+tabsNav.querySelectorAll(".tab").forEach(b => {
+  b.addEventListener("click", () => { showTab(b.dataset.tab); window.scrollTo(0, 0); });
+});
+showTab(location.hash.slice(1) || tabsNav.dataset.default);
 </script>
 </body>
 </html>
