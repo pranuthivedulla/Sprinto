@@ -412,3 +412,42 @@ companies, and the negative-news path fired for the first time on Appsmith's
 CVE-2026-22794 account-takeover story. It counted towards the tier, was flagged for
 the reviewer only, and was correctly not chosen as the hook. That branch had never
 run on real data.
+
+## Decision 25 (approved)
+The page shows every company in the database, grouped by what is owed, not one run.
+
+`_page_context` loaded the most recent run and read its rows. On 18 Nov 2026 the
+database held fourteen researched companies, nine drafts, two sends, one reply and
+one booked meeting, and the page said "Review (0), Dropped (0), nothing queued
+yet", because the last run had been a single failed domain. The work was all
+stored; none of it was displayed. Every number on screen was true of a run nobody
+cared about and false of the pipeline.
+
+It now reads `db.all_companies()` and groups by status. A funnel line across the
+top states the whole pipeline in one row - researched, not a fit, not researched,
+drafted, sent, replied, booked - and below it six sections ordered by what the
+reviewer would do next: Needs you, In scheduling, Not a fit, Not researched,
+Decided, Sent.
+
+Not a fit and Not researched are separate sections, because they are different
+claims. Not a fit means the company was judged and rejected, and the card carries
+the rule and the quote that fired it. Not researched means no judgement exists:
+something failed before an answer did, and the domain is worth running again. The
+pipeline has drawn that line internally since the retry rule was added; the page
+was collapsing it back into one table, which hides the only rows a re-run would
+help.
+
+The action list is one row per domain. Researching Atlan twice listed it twice, so
+seven queued drafts were really five companies. The newest row wins, the older ones
+are hidden, and the page states how many were superseded rather than dropping them
+silently. The Sent table stopped repeating one company's reply and meeting on every
+send row.
+
+The template render check now builds its context from `main._page_context` instead
+of a hand-written dict. That is how this change first broke the suite: the test
+was asserting against a context shape the app no longer produced, and would have
+kept passing against the old one forever. Same fault as the stub checks in Decision
+23 - a test that exercises something other than what runs.
+
+227 checks pass. Nothing was added to the pipeline here; what changed is which of
+its records reach the screen.
