@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2440" height="1604" viewBox="0 0 2440 1604" font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif">
+<rect width="2440" height="1604" fill="#ffffff"/>
+<defs>
+<marker id="arrow" markerWidth="11" markerHeight="9" refX="10" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 Z" fill="#152a52"/></marker>
+<marker id="arrowgrey" markerWidth="11" markerHeight="9" refX="10" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 Z" fill="#6b7a90"/></marker>
+</defs>
+<text x="1220" y="46" text-anchor="middle" font-size="27" font-weight="700" fill="#15233a">Build 2 &#183; Sprinto Cold Outreach: Components Map</text>
+<text x="1220" y="71" text-anchor="middle" font-size="14" fill="#6b7a90">v10 &#183; 19 November 2026 &#183; the order the code actually runs, with every source it reads</text>
+<rect x="238" y="134" width="2176" height="196" fill="#f8f6ff"/>
+<rect x="26" y="134" width="212" height="196" fill="#152a52"/>
+<text x="132" y="230" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Growth Lead</text>
+<text x="132" y="249" text-anchor="middle" font-size="11.5" fill="#c3cde0">(you, or a grader's script)</text>
+<line x1="26" y1="134" x2="2414" y2="134" stroke="#dfe5ee"/>
+<rect x="238" y="330" width="2176" height="252" fill="#fffdf2"/>
+<rect x="26" y="330" width="212" height="252" fill="#152a52"/>
+<text x="132" y="454" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">The app</text>
+<text x="132" y="473" text-anchor="middle" font-size="11.5" fill="#c3cde0">(our code: it decides)</text>
+<line x1="26" y1="330" x2="2414" y2="330" stroke="#dfe5ee"/>
+<rect x="238" y="582" width="2176" height="136" fill="#fff8f1"/>
+<rect x="26" y="582" width="212" height="136" fill="#152a52"/>
+<text x="132" y="648" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">What it reads</text>
+<text x="132" y="667" text-anchor="middle" font-size="11.5" fill="#c3cde0">(nothing else is a source)</text>
+<line x1="26" y1="582" x2="2414" y2="582" stroke="#dfe5ee"/>
+<rect x="238" y="718" width="2176" height="126" fill="#f2fdfa"/>
+<rect x="26" y="718" width="212" height="126" fill="#152a52"/>
+<text x="132" y="779" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Hunter.io</text>
+<text x="132" y="798" text-anchor="middle" font-size="11.5" fill="#c3cde0">(the contact)</text>
+<line x1="26" y1="718" x2="2414" y2="718" stroke="#dfe5ee"/>
+<rect x="238" y="844" width="2176" height="212" fill="#f4fdf6"/>
+<rect x="26" y="844" width="212" height="212" fill="#152a52"/>
+<text x="132" y="948" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Gemini Flash</text>
+<text x="132" y="967" text-anchor="middle" font-size="11.5" fill="#c3cde0">(the only AI, anywhere)</text>
+<line x1="26" y1="844" x2="2414" y2="844" stroke="#dfe5ee"/>
+<rect x="238" y="1056" width="2176" height="136" fill="#f4f9fe"/>
+<rect x="26" y="1056" width="212" height="136" fill="#152a52"/>
+<text x="132" y="1122" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Gmail</text>
+<text x="132" y="1141" text-anchor="middle" font-size="11.5" fill="#c3cde0">(sends, and reads replies)</text>
+<line x1="26" y1="1056" x2="2414" y2="1056" stroke="#dfe5ee"/>
+<rect x="238" y="1192" width="2176" height="136" fill="#f7f6fe"/>
+<rect x="26" y="1192" width="212" height="136" fill="#152a52"/>
+<text x="132" y="1258" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Scheduling agent</text>
+<text x="132" y="1277" text-anchor="middle" font-size="11.5" fill="#c3cde0">(LangGraph, Sequence 2)</text>
+<line x1="26" y1="1192" x2="2414" y2="1192" stroke="#dfe5ee"/>
+<rect x="238" y="1328" width="2176" height="104" fill="#f6f8fb"/>
+<rect x="26" y="1328" width="212" height="104" fill="#152a52"/>
+<text x="132" y="1378" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">The store</text>
+<text x="132" y="1397" text-anchor="middle" font-size="11.5" fill="#c3cde0">(one layer, two engines)</text>
+<line x1="26" y1="1328" x2="2414" y2="1328" stroke="#dfe5ee"/>
+<line x1="510" y1="134" x2="510" y2="1432" stroke="#e7ecf3"/>
+<line x1="782" y1="134" x2="782" y2="1432" stroke="#e7ecf3"/>
+<line x1="1054" y1="134" x2="1054" y2="1432" stroke="#e7ecf3"/>
+<line x1="1326" y1="134" x2="1326" y2="1432" stroke="#e7ecf3"/>
+<line x1="1598" y1="134" x2="1598" y2="1432" stroke="#e7ecf3"/>
+<line x1="1870" y1="134" x2="1870" y2="1432" stroke="#e7ecf3"/>
+<line x1="2142" y1="134" x2="2142" y2="1432" stroke="#e7ecf3"/>
+<rect x="26" y="88" width="2388" height="46" fill="#152a52"/>
+<text x="132" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Actor</text>
+<text x="374" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Entry</text>
+<text x="646" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Research</text>
+<text x="918" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Qualify</text>
+<text x="1190" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Signals and tier</text>
+<text x="1462" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Contact</text>
+<text x="1734" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Draft</text>
+<text x="2006" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Review and send</text>
+<text x="2278" y="117" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Reply and meeting</text>
+<rect x="252" y="160" width="244" height="58" rx="9" fill="#efe6ff" stroke="#8b5cf6" stroke-width="2"/>
+<text x="374" y="181" text-anchor="middle" font-size="13" fill="#15233a">Types domains, or clicks</text>
+<text x="374" y="198" text-anchor="middle" font-size="13" fill="#15233a">Healthtech, Fintech or Devtools</text>
+<rect x="252" y="244" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="374" y="265" text-anchor="middle" font-size="13" fill="#15233a">Or a script posts JSON to /run-</text>
+<text x="374" y="282" text-anchor="middle" font-size="13" fill="#15233a">domain: same endpoint, same</text>
+<text x="374" y="299" text-anchor="middle" font-size="13" fill="#15233a">answers</text>
+<rect x="252" y="418" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="374" y="440" text-anchor="middle" font-size="13" fill="#15233a">1 Cleans each one. 253 characters,</text>
+<text x="374" y="456" text-anchor="middle" font-size="13" fill="#15233a">63 a label, punycode for other</text>
+<text x="374" y="474" text-anchor="middle" font-size="13" fill="#15233a">scripts. One domain per request</text>
+<rect x="524" y="348" width="244" height="143" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="646" y="369" text-anchor="middle" font-size="13" fill="#15233a">2 Our scraper, not a library: six</text>
+<text x="646" y="386" text-anchor="middle" font-size="13" fill="#15233a">pages one at a time, follows the</text>
+<text x="646" y="403" text-anchor="middle" font-size="13" fill="#15233a">homepage's own links when a path</text>
+<text x="646" y="420" text-anchor="middle" font-size="13" fill="#15233a">is missing, refuses a page that</text>
+<text x="646" y="437" text-anchor="middle" font-size="13" fill="#15233a">redirected elsewhere, and records</text>
+<text x="646" y="454" text-anchor="middle" font-size="13" fill="#15233a">"not readable" rather than</text>
+<text x="646" y="471" text-anchor="middle" font-size="13" fill="#15233a">guessing</text>
+<rect x="524" y="604" width="151" height="92" rx="9" fill="#ffe9d6" stroke="#d9742a" stroke-width="2"/>
+<text x="600" y="625" text-anchor="middle" font-size="13" fill="#15233a">The company's own</text>
+<text x="600" y="642" text-anchor="middle" font-size="13" fill="#15233a">site: home, pricing,</text>
+<text x="600" y="659" text-anchor="middle" font-size="13" fill="#15233a">about, careers,</text>
+<text x="600" y="676" text-anchor="middle" font-size="13" fill="#15233a">trust, customers</text>
+<rect x="524" y="866" width="244" height="58" rx="9" fill="#d5f5dd" stroke="#2fa75a" stroke-width="2"/>
+<text x="646" y="887" text-anchor="middle" font-size="13" fill="#15233a">3 Pulls each field with a quote</text>
+<text x="646" y="904" text-anchor="middle" font-size="13" fill="#15233a">and the URL it came from</text>
+<rect x="524" y="964" width="244" height="58" rx="9" fill="#d5f5dd" stroke="#2fa75a" stroke-width="2"/>
+<text x="646" y="985" text-anchor="middle" font-size="13" fill="#15233a">4 Says whether one more page would</text>
+<text x="646" y="1002" text-anchor="middle" font-size="13" fill="#15233a">settle an unknown</text>
+<rect x="796" y="356" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="918" y="377" text-anchor="middle" font-size="13" fill="#15233a">5 Re-checks every quote word for</text>
+<text x="918" y="394" text-anchor="middle" font-size="13" fill="#15233a">word against the page. Unverified</text>
+<text x="918" y="411" text-anchor="middle" font-size="13" fill="#15233a">counts as unknown</text>
+<rect x="796" y="472" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="918" y="493" text-anchor="middle" font-size="13" fill="#15233a">6 Five hard filters. A drop</text>
+<text x="918" y="510" text-anchor="middle" font-size="13" fill="#15233a">carries the rule and the sentence</text>
+<text x="918" y="527" text-anchor="middle" font-size="13" fill="#15233a">that fired it</text>
+<rect x="1068" y="418" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="1190" y="440" text-anchor="middle" font-size="13" fill="#15233a">8 Dates every headline itself,</text>
+<text x="1190" y="456" text-anchor="middle" font-size="13" fill="#15233a">keeps the window, then sets the</text>
+<text x="1190" y="474" text-anchor="middle" font-size="13" fill="#15233a">tier</text>
+<rect x="1068" y="604" width="151" height="92" rx="9" fill="#ffe9d6" stroke="#d9742a" stroke-width="2"/>
+<text x="1144" y="625" text-anchor="middle" font-size="13" fill="#15233a">Google News RSS,</text>
+<text x="1144" y="642" text-anchor="middle" font-size="13" fill="#15233a">unofficial. A</text>
+<text x="1144" y="659" text-anchor="middle" font-size="13" fill="#15233a">failure is unknown,</text>
+<text x="1144" y="676" text-anchor="middle" font-size="13" fill="#15233a">never "no news"</text>
+<rect x="1068" y="921" width="244" height="58" rx="9" fill="#d5f5dd" stroke="#2fa75a" stroke-width="2"/>
+<text x="1190" y="942" text-anchor="middle" font-size="13" fill="#15233a">7 Reads up to ten headlines:</text>
+<text x="1190" y="959" text-anchor="middle" font-size="13" fill="#15233a">funding, hiring, a breach</text>
+<rect x="1340" y="427" width="244" height="58" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="1462" y="448" text-anchor="middle" font-size="13" fill="#15233a">10 Picks the person by title, or</text>
+<text x="1462" y="465" text-anchor="middle" font-size="13" fill="#15233a">drops the company</text>
+<rect x="1340" y="752" width="244" height="58" rx="9" fill="#cdf3ea" stroke="#19a98c" stroke-width="2"/>
+<text x="1462" y="773" text-anchor="middle" font-size="13" fill="#15233a">9 Hunter domain search, cached, so</text>
+<text x="1462" y="790" text-anchor="middle" font-size="13" fill="#15233a">a domain is never searched twice</text>
+<rect x="1612" y="418" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="1734" y="440" text-anchor="middle" font-size="13" fill="#15233a">12 Re-reads the draft against the</text>
+<text x="1734" y="456" text-anchor="middle" font-size="13" fill="#15233a">stored signals and flags any claim</text>
+<text x="1734" y="474" text-anchor="middle" font-size="13" fill="#15233a">they do not carry</text>
+<rect x="1612" y="921" width="244" height="58" rx="9" fill="#d5f5dd" stroke="#2fa75a" stroke-width="2"/>
+<text x="1734" y="942" text-anchor="middle" font-size="13" fill="#15233a">11 Two pain points for that role,</text>
+<text x="1734" y="959" text-anchor="middle" font-size="13" fill="#15233a">then the email</text>
+<rect x="1884" y="203" width="244" height="58" rx="9" fill="#efe6ff" stroke="#8b5cf6" stroke-width="2"/>
+<text x="2006" y="224" text-anchor="middle" font-size="13" fill="#15233a">Reads the card, edits, approves or</text>
+<text x="2006" y="241" text-anchor="middle" font-size="13" fill="#15233a">rejects</text>
+<rect x="1884" y="418" width="244" height="75" rx="9" fill="#fbd9e8" stroke="#d94f8c" stroke-width="2"/>
+<text x="2006" y="440" text-anchor="middle" font-size="13" fill="#15233a">13 One card per company: funnel,</text>
+<text x="2006" y="456" text-anchor="middle" font-size="13" fill="#15233a">tabs, flags, evidence. Daily cap</text>
+<text x="2006" y="474" text-anchor="middle" font-size="13" fill="#15233a">of 15</text>
+<rect x="1884" y="1086" width="244" height="75" rx="9" fill="#d8e9fb" stroke="#2f7fd0" stroke-width="2"/>
+<text x="2006" y="1108" text-anchor="middle" font-size="13" fill="#15233a">14 Sends over SMTP, always to</text>
+<text x="2006" y="1124" text-anchor="middle" font-size="13" fill="#15233a">TO_EMAIL, with the contact named</text>
+<text x="2006" y="1142" text-anchor="middle" font-size="13" fill="#15233a">in a banner</text>
+<rect x="2156" y="212" width="244" height="41" rx="9" fill="#efe6ff" stroke="#8b5cf6" stroke-width="2"/>
+<text x="2278" y="232" text-anchor="middle" font-size="13" fill="#15233a">Takes over when the agent gives up</text>
+<rect x="2156" y="418" width="244" height="75" rx="9" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="2278" y="440" text-anchor="middle" font-size="13" fill="#15233a">16 Matches each reply to its</text>
+<text x="2278" y="456" text-anchor="middle" font-size="13" fill="#15233a">company by Message-ID, then by the</text>
+<text x="2278" y="474" text-anchor="middle" font-size="13" fill="#15233a">whole subject</text>
+<rect x="2156" y="912" width="244" height="75" rx="9" fill="#d5f5dd" stroke="#2fa75a" stroke-width="2"/>
+<text x="2278" y="934" text-anchor="middle" font-size="13" fill="#15233a">17 Reads the reply: interested or</text>
+<text x="2278" y="950" text-anchor="middle" font-size="13" fill="#15233a">not, and picks one of the slots</text>
+<text x="2278" y="968" text-anchor="middle" font-size="13" fill="#15233a">code offered</text>
+<rect x="2156" y="1095" width="151" height="58" rx="9" fill="#d8e9fb" stroke="#2f7fd0" stroke-width="2"/>
+<text x="2232" y="1116" text-anchor="middle" font-size="13" fill="#15233a">15 IMAP reads INBOX</text>
+<text x="2232" y="1133" text-anchor="middle" font-size="13" fill="#15233a">and Spam</text>
+<rect x="2156" y="1222" width="244" height="75" rx="9" fill="#e6e2fb" stroke="#6246c7" stroke-width="2"/>
+<text x="2278" y="1244" text-anchor="middle" font-size="13" fill="#15233a">18 check_calendar, propose_time,</text>
+<text x="2278" y="1260" text-anchor="middle" font-size="13" fill="#15233a">handle_reply, book_meeting, else</text>
+<text x="2278" y="1278" text-anchor="middle" font-size="13" fill="#15233a">escalate</text>
+<rect x="252" y="1360" width="2148" height="41" rx="9" fill="#e7edf6" stroke="#5b6b85" stroke-width="2"/>
+<text x="1326" y="1380" text-anchor="middle" font-size="13" fill="#15233a">Postgres on Neon deployed, SQLite on your laptop, one layer over both: runs, companies, hunter_cache, news_cache, send_log, login_attempts, decision_log. Every field keeps its quote and its source, which is what the card shows you and what the traceability check reads back.</text>
+<path d="M 304 218 V 418" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 444 319 V 418" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 496 456 H 503 V 420 H 524" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 600 604 V 491" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="503" y="567" width="194" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="600" y="581" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">six pages, eight seconds each</text>
+<path d="M 706 491 V 866" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="671" y="497" width="95" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="718" y="511" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">the page text</text>
+<path d="M 768 993 H 756 V 370 H 768" fill="none" stroke="#d94f8c" stroke-width="2.4" stroke-dasharray="8 6" marker-end="url(#arrow)"/>
+<rect x="664" y="1029" width="175" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="752" y="1043" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b03a6e">one more page, at most two</text>
+<path d="M 768 895 H 775 V 394 H 796" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="715" y="769" width="119" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="775" y="783" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">fields and quotes</text>
+<path d="M 918 431 V 472" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 1040 510 H 1047 V 456 H 1068" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 1144 604 V 494" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="1109" y="567" width="70" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1144" y="581" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">headlines</text>
+<path d="M 1250 494 V 921" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 1300 921 V 494" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="1218" y="801" width="113" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1275" y="815" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">what each one is</text>
+<path d="M 1312 456 H 1319 V 781 H 1340" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 1462 752 V 485" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="1452" y="725" width="169" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1536" y="739" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">a name, a title, an email</text>
+<path d="M 1584 456 H 1591 V 950 H 1612" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 1734 921 V 494" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="1739" y="894" width="113" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1796" y="908" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">subject and body</text>
+<path d="M 1856 456 H 1884" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 2006 418 V 261" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="2024" y="267" width="76" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="2062" y="281" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">you decide</text>
+<path d="M 1884 232 H 1863 V 1124 H 1884" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="1870" y="1060" width="95" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1917" y="1074" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">approved only</text>
+<path d="M 2128 1124 H 2156" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 2232 1095 V 494" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<rect x="2172" y="1058" width="119" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="2232" y="1072" text-anchor="middle" font-size="11.5" font-weight="600" fill="#15233a">a reply came back</text>
+<path d="M 2344 494 V 912" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 2370 988 V 1222" fill="none" stroke="#152a52" stroke-width="2.4" marker-end="url(#arrow)"/>
+<path d="M 2156 1260 H 2135 V 232 H 2156" fill="none" stroke="#d94f8c" stroke-width="2.4" stroke-dasharray="8 6" marker-end="url(#arrow)"/>
+<rect x="2131" y="258" width="132" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="2197" y="272" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b03a6e">only if it gives up</text>
+<path d="M 1040 492 H 1047 V 344 H 2006 V 418" fill="none" stroke="#6b7a90" stroke-width="2.4" stroke-dasharray="8 6" marker-end="url(#arrowgrey)"/>
+<rect x="1359" y="333" width="206" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1462" y="347" text-anchor="middle" font-size="11.5" font-weight="600" fill="#6b7a90">dropped: the rule and the quote</text>
+<rect x="26" y="1454" width="2388" height="42" rx="8" fill="#f6f8fb"/>
+<text x="46" y="1480" font-size="13" font-weight="700" fill="#15233a">Legend:</text>
+<line x1="110" y1="1475" x2="150" y2="1475" stroke="#152a52" stroke-width="2.4"/>
+<path d="M 150 1469 L 162 1475 L 150 1481 Z" fill="#152a52"/>
+<text x="170" y="1480" font-size="12.5" fill="#15233a">The main flow</text>
+<line x1="276" y1="1475" x2="316" y2="1475" stroke="#6b7a90" stroke-width="2.4" stroke-dasharray="8 6"/>
+<path d="M 316 1469 L 328 1475 L 316 1481 Z" fill="#6b7a90"/>
+<text x="336" y="1480" font-size="12.5" fill="#15233a">Dropped, with the reason</text>
+<line x1="498" y1="1475" x2="538" y2="1475" stroke="#d94f8c" stroke-width="2.4" stroke-dasharray="8 6"/>
+<path d="M 538 1469 L 550 1475 L 538 1481 Z" fill="#d94f8c"/>
+<text x="558" y="1480" font-size="12.5" fill="#15233a">Only when it has to</text>
+<rect x="700" y="1466" width="20" height="18" rx="4" fill="#fdefc8" stroke="#e0a21a" stroke-width="2"/>
+<text x="727" y="1480" font-size="12.5" fill="#15233a">Our code decides</text>
+<rect x="858" y="1466" width="20" height="18" rx="4" fill="#d5f5dd" stroke="#2fa75a" stroke-width="2"/>
+<text x="885" y="1480" font-size="12.5" fill="#15233a">Gemini Flash</text>
+<rect x="988" y="1466" width="20" height="18" rx="4" fill="#ffe9d6" stroke="#d9742a" stroke-width="2"/>
+<text x="1015" y="1480" font-size="12.5" fill="#15233a">What it reads</text>
+<rect x="1122" y="1466" width="20" height="18" rx="4" fill="#cdf3ea" stroke="#19a98c" stroke-width="2"/>
+<text x="1149" y="1480" font-size="12.5" fill="#15233a">Hunter.io</text>
+<rect x="1236" y="1466" width="20" height="18" rx="4" fill="#d8e9fb" stroke="#2f7fd0" stroke-width="2"/>
+<text x="1263" y="1480" font-size="12.5" fill="#15233a">Gmail</text>
+<rect x="1330" y="1466" width="20" height="18" rx="4" fill="#e6e2fb" stroke="#6246c7" stroke-width="2"/>
+<text x="1357" y="1480" font-size="12.5" fill="#15233a">LangGraph</text>
+<rect x="1450" y="1466" width="20" height="18" rx="4" fill="#efe6ff" stroke="#8b5cf6" stroke-width="2"/>
+<text x="1477" y="1480" font-size="12.5" fill="#15233a">You</text>
+<rect x="1528" y="1466" width="20" height="18" rx="4" fill="#fbd9e8" stroke="#d94f8c" stroke-width="2"/>
+<text x="1555" y="1480" font-size="12.5" fill="#15233a">What you read</text>
+<rect x="1662" y="1466" width="20" height="18" rx="4" fill="#e7edf6" stroke="#5b6b85" stroke-width="2"/>
+<text x="1689" y="1480" font-size="12.5" fill="#15233a">Stored</text>
+<text x="26" y="1520" font-size="12.5" fill="#15233a"><tspan font-weight="700">Read it in order:</tspan> 1 to 18 is the order pipeline.py runs them. The hard filters fire before any news is fetched, and the contact is looked up last of the three, so a company that fails a filter costs no Hunter search.</text>
+<text x="26" y="1539" font-size="12.5" fill="#15233a"><tspan font-weight="700">Set once:</tspan> ICP is fintech, healthtech or devtools, 10-100 people, Series A to C. Daily send cap 15, at most 15 domains a run, 240 seconds a domain. Every send goes to TO_EMAIL and nowhere else.</text>
+<text x="26" y="1558" font-size="12.5" fill="#15233a"><tspan font-weight="700">Never:</tspan> sends without a human approval, states a fact it did not find, quotes negative news in the email, searches the same domain on Hunter twice, or turns "not shown on the site" into "not certified".</text>
+<text x="26" y="1577" font-size="12.5" fill="#15233a"><tspan font-weight="700">Not built:</tspan> discovery (the companies are still your list, not found from the signals) and the feedback loop (your edits are stored and nothing reads them).</text>
+</svg>

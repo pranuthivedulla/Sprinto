@@ -582,3 +582,26 @@ needs a timeout well above the usual thirty seconds.
 grader runs spends a Hunter search from a free tier of fifty a month, and a
 script that times out at thirty seconds will fail against research that takes
 four minutes even when the app is working perfectly.
+
+## Decision 29 (approved)
+The map is drawn from `pipeline.py`, not from memory of the build.
+
+v9 was drawn yesterday and was wrong in four ways, all found by reading the
+code against it rather than by looking at it:
+
+- **The scraper was not on it.** `app/scrape.py` is 296 lines, the second
+  largest module in the app, written on `requests` and the standard library
+  with no scraping library anywhere - and the map said only "reads home,
+  pricing, about". A build whose own scraper is a stated requirement cannot
+  have it as an unnamed verb.
+- **Neither source was on it.** Hunter and Gmail had lanes; the company's own
+  site and Google News RSS, the two things actually read, had none.
+- **The order was wrong.** The map put news inside research. The code fetches
+  news *after* the hard filters and looks up a contact after that, which is
+  the whole reason a company that fails a filter costs no Hunter search.
+- **v8's agent loop had been dropped** - the at-most-two extra fetches when a
+  field comes back unknown.
+
+v10 has eight lanes and eight stages, steps numbered 1 to 18 in the order the
+code runs them, and the generator lives in `design-reference/` so the next
+version is an edit rather than a redraw. v9 is kept, as v1 to v8 are.
