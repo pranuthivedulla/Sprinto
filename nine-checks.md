@@ -539,3 +539,46 @@ login screen sends you inward, an open page still takes a run, production serves
 rather than refuses, robots.txt disallows, and putting the passcode back closes
 everything again. The check that production refuses without a cookie secret was
 rewritten rather than deleted, because that case is still real.
+
+## Decision 28 (approved)
+The app answers a script, not only its own page.
+
+The marking scheme arrived: a script, not a person, will post inputs to the
+deployed app and check what comes back, with marks for the cases passing, the
+output being right, and bad input producing the right error instead of a crash.
+The input format is promised in advance and is not here yet, so this is the work
+that does not depend on knowing it.
+
+Probed first, then fixed. Eighteen requests of the kind a grader's script sends,
+against a stubbed pipeline so nothing was spent. Nothing crashed and nothing
+returned a 500, which was the good news. Two answers were wrong:
+
+- **A JSON body read as an empty domain.** `{"domain": "acme.com"}` came back
+  400, `'' is not a usable domain`, because the endpoint only read a form. The
+  page posts a form; anything scripted is at least as likely to post JSON. Every
+  case a grader sent would have failed, with a message blaming them for sending
+  nothing. `/run-domain` now reads the query string, a JSON body and a form into
+  one dict, and takes the domain under `domain`, `company`, `company_domain`,
+  `url` or `website`. An empty request now says what shape to send.
+- **Five thousand characters passed as a domain** and would have been
+  researched, spending a Hunter search to discover it was nonsense. `clean.py`
+  now applies the real limits - 253 characters, 63 a label, no label opening or
+  closing on a hyphen, a TLD that is letters or punycode - and the chip input
+  mirrors them. A name in another script is no longer refused: it is converted
+  to punycode, because that is a real domain.
+
+Two smaller ones. A missing or mistyped field returned FastAPI's own 422 with a
+list of validation objects, accurate and unreadable; one handler now turns that
+into a 400 and `Missing or unusable: company_id.` And the suite itself died
+rather than failed when a check printed a domain in another script, because a
+Windows console is cp1252 - the kind of fault that silently takes every check
+after it, so stdout is now forced to UTF-8.
+
+The endpoint is documented in the README with a curl line, the three statuses it
+can answer, and the warning that one domain can take four minutes, so a caller
+needs a timeout well above the usual thirty seconds.
+
+254 checks, twenty new. Two risks remain that code cannot fix: every test case a
+grader runs spends a Hunter search from a free tier of fifty a month, and a
+script that times out at thirty seconds will fail against research that takes
+four minutes even when the app is working perfectly.

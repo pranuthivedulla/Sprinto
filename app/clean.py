@@ -3,6 +3,21 @@ import re
 
 _SPLIT = re.compile(r"[\s,;]+")
 
+# A name has to be one a resolver could answer: 253 characters at the outside,
+# 63 per label, no label opening or closing on a hyphen. Without this, 5,000
+# letters and a dot read as a domain and cost a Hunter search to find out.
+MAX_DOMAIN = 253
+_LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?")
+_TLD = re.compile(r"[a-z]{2,63}|xn--[a-z0-9-]{2,59}")
+
+
+def _punycode(name):
+    """A domain written in its own script is a real domain; make it ASCII."""
+    try:
+        return name.encode("idna").decode("ascii")
+    except Exception:
+        return ""
+
 
 def clean_domain(raw):
     """Strip scheme, www, path, query, port, spaces; lowercase. Returns '' if unusable."""
@@ -16,9 +31,18 @@ def clean_domain(raw):
     if d.startswith("www."):
         d = d[4:]
     d = d.strip(".")
-    if "." not in d or " " in d:
+    if not d or "." not in d or " " in d:
         return ""
-    if not re.fullmatch(r"[a-z0-9.-]+", d):
+    if not d.isascii():
+        d = _punycode(d)
+        if not d:
+            return ""
+    if len(d) > MAX_DOMAIN:
+        return ""
+    labels = d.split(".")
+    if len(labels) < 2 or not all(_LABEL.fullmatch(p) for p in labels):
+        return ""
+    if not _TLD.fullmatch(labels[-1]):
         return ""
     return d
 

@@ -43,6 +43,34 @@ Gemini Flash is the only AI anywhere in this repo at runtime. It reads messy tex
 classifies from a fixed list with a quote, and writes. It never filters, ranks, does
 date arithmetic, picks a person, or sends.
 
+## Calling it from a script
+
+One endpoint does the work. It takes a form body, a JSON body or a query string,
+and answers JSON either way.
+
+```bash
+curl -X POST https://sprinto-bice.vercel.app/run-domain      -H "Content-Type: application/json"      -d '{"domain": "acme.com"}'
+```
+
+```json
+{"run_id": 12, "company_id": 34, "domain": "acme.com",
+ "status": "queued", "tier": "High"}
+```
+
+`status` is `queued` (a draft is waiting for a human), `dropped` (a hard filter
+fired, and `rule` says which) or `failed` (nothing was judged; `reason` says what
+broke). The domain may also be sent as `company`, `company_domain`, `url` or
+`website`. Pass `run_id` from a previous answer to group domains into one run.
+
+One domain per request, because one request is one serverless invocation, and a
+single domain can take up to four minutes. A script that calls this needs its own
+timeout set well above the default 30 seconds.
+
+Errors are a 400 and a one-line `error`, never a stack trace: no domain in the
+request, a name no resolver could answer (over 253 characters, a label over 63,
+a label on a hyphen), a run already holding its 15 domains, or a missing key.
+A name in another script is accepted and converted to punycode.
+
 ## The rules the code enforces
 
 Hard filters (any one drops the company, and the drop is logged with the rule and the

@@ -15,6 +15,14 @@ from urllib.parse import urlsplit
 
 from app import config
 
+# A Windows console is cp1252 by default, and one check prints a domain written
+# in another script. Without this the whole suite dies on the print, not on a
+# failure, and takes every check after it with it.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 # Point the database at a throwaway file before anything opens it.
 config.DATA_DIR = Path(tempfile.mkdtemp(prefix="sprinto-test-"))
 config.DB_PATH = config.DATA_DIR / "test.db"
@@ -595,8 +603,19 @@ for raw, want in [
     ("  delta.ai/  ", "delta.ai"),
     ("banana", ""),
     ("not a domain", ""),
+    # A grader's edge cases: nothing here should reach a paid lookup.
+    ("a" * 5000 + ".com", ""),
+    ("a" * 64 + ".com", ""),
+    ("-acme.com", ""),
+    ("acme-.com", ""),
+    ("acme.c", ""),
+    ("acme.123", ""),
+    ("acme..com", ""),
+    ("日本会社.com", "xn--6oq986cb2az79b.com"),
 ]:
     check(f"{raw!r} cleans to {want!r}", clean.clean_domain(raw) == want)
+check("a name at the 253-character limit still passes",
+      clean.clean_domain(("a" * 61 + ".") * 4 + "com") != "")
 
 # --- the endpoints -----------------------------------------------------------
 print("endpoints")
@@ -649,6 +668,38 @@ check(f"the {config.MAX_DOMAINS_PER_RUN + 1}th domain in a run is refused",
       _over.status_code == 400)
 check("and the run still holds exactly the limit",
       db.count_companies(_rid) == config.MAX_DOMAINS_PER_RUN)
+
+
+# --- what a grading script sends, which is not what the page sends ----------
+print("inputs from outside the page")
+_j = _in.post("/run-domain", json={"domain": "json-body.com"})
+check("a JSON body is read the same as a form", _j.status_code == 200)
+check("and comes back with the domain it researched",
+      _j.json().get("domain") == "json-body.com")
+check("the domain may arrive under another obvious name",
+      _in.post("/run-domain", json={"website": "by-other-name.com"}
+               ).json().get("domain") == "by-other-name.com")
+check("a query string works too",
+      _in.post("/run-domain?domain=in-the-query.com"
+               ).json().get("domain") == "in-the-query.com")
+_none = _in.post("/run-domain", json={})
+check("no domain at all is a 400, not a complaint about an empty string",
+      _none.status_code == 400 and "No domain in the request" in _none.text)
+check("and the message shows the shape to send",
+      '{"domain": "acme.com"}' in _none.json()["error"])
+_long = _in.post("/run-domain", json={"domain": "a" * 5000 + ".com"})
+check("5,000 characters is refused before anything is spent",
+      _long.status_code == 400)
+check("an unparseable JSON body is a 400, not a crash",
+      _in.post("/run-domain", content=b"{not json",
+               headers={"content-type": "application/json"}).status_code == 400)
+_missing = _in.post("/approve", data={})
+check("a missing field is a 400 naming the field, not a validation dump",
+      _missing.status_code == 400 and "company_id" in _missing.json()["error"])
+check("and a field of the wrong type says the same",
+      _in.post("/approve", data={"company_id": "abc"}).status_code == 400)
+check("an endpoint that does not exist is still a clean 404",
+      _in.post("/api/run", json={"domain": "x.com"}).status_code == 404)
 
 
 # --- a misconfigured deployment must say so, not crash -----------------------

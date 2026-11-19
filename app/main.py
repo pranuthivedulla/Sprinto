@@ -5,6 +5,7 @@ Run and Approve are admin actions: the passcode is checked here, on the server.
 import json
 
 from fastapi import FastAPI, Form, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -59,6 +60,56 @@ async def _guard(request: Request, call_next):
             response = await call_next(request)
     response.headers["X-Robots-Tag"] = "noindex, nofollow"
     return response
+
+
+@app.exception_handler(RequestValidationError)
+async def _unusable_input(request, exc):
+    """A missing or unparseable field is a bad request, answered in one line.
+
+    FastAPI's own answer is a 422 carrying a list of validation objects. That is
+    accurate and unreadable, and anything calling this app from the outside -
+    a script, or someone with curl - deserves to be told which field it is.
+    """
+    fields = sorted({str(e["loc"][-1]) for e in exc.errors()}) or ["body"]
+    return JSONResponse(
+        {"error": "Missing or unusable: " + ", ".join(fields) + "."},
+        status_code=400,
+    )
+
+
+async def _inputs(request):
+    """Every way a caller might send a value, flattened into one dict.
+
+    The page posts a form. Anything scripted is at least as likely to post
+    JSON, and a caller that guesses wrong should not be told its domain was
+    empty. Query string, JSON body and form body all land in the same place.
+    """
+    data = dict(request.query_params)
+    raw = await request.body()
+    if raw:
+        content_type = request.headers.get("content-type", "")
+        if "json" in content_type or raw.lstrip()[:1] in (b"{", b"["):
+            try:
+                parsed = json.loads(raw)
+            except ValueError:
+                parsed = None
+            if isinstance(parsed, dict):
+                data.update(parsed)
+        else:
+            try:
+                data.update(dict(await request.form()))
+            except Exception:
+                pass
+    return data
+
+
+def _field(data, *names):
+    """The first of these keys that carries anything, as a string."""
+    for name in names:
+        value = data.get(name)
+        if value not in (None, "", []):
+            return str(value).strip()
+    return ""
 
 
 def _loads(raw, default):
@@ -253,19 +304,32 @@ def _back(message="", error=""):
 
 
 @app.post("/run-domain")
-def run_domain(request: Request, passcode: str = Form(""),
-               domain: str = Form(""), run_id: str = Form("")):
+async def run_domain(request: Request):
     """Research exactly one domain and return its result.
 
     One domain per request, so the work fits inside a single serverless invocation.
-    The page calls this once per chip, in order.
+    The page calls this once per chip, in order. A form, a JSON body and a query
+    string are all read the same way, and the domain may arrive under any of the
+    obvious names, because a caller that spells it differently should get the
+    research rather than a complaint.
     """
+    data = await _inputs(request)
+    passcode = _field(data, "passcode")
+    domain = _field(data, "domain", "company", "company_domain", "url", "website")
+    run_id = _field(data, "run_id", "runId")
+
     if not auth.authorized(request, passcode):
         return JSONResponse({"error": "Wrong passcode."}, status_code=403)
     missing = config.missing_keys(["GEMINI_API_KEY", "HUNTER_API_KEY"])
     if missing:
         return JSONResponse(
             {"error": f"Not set in .env: {', '.join(missing)}"}, status_code=400
+        )
+    if not domain:
+        return JSONResponse(
+            {"error": 'No domain in the request. Send {"domain": "acme.com"} as '
+                      "JSON or as a form field."},
+            status_code=400,
         )
     cleaned = clean.clean_domain(domain)
     if not cleaned:
